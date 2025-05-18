@@ -15,6 +15,9 @@ o.smartindent = true
 o.tabstop = 4
 o.wrap = false
 
+-- Smart columns
+opt.colorcolumn = "80"
+
 opt.relativenumber = true
 
 vim.filetype.add({
