@@ -6,13 +6,13 @@
 local M = {}
 
 M.base46 = {
-  theme = "catppuccin",
-  transparency = true,
+    theme = "catppuccin",
+    transparency = true,
 
-  -- hl_override = {
-  -- 	Comment = { italic = true },
-  -- 	["@comment"] = { italic = true },
-  -- },
+    -- hl_override = {
+    -- 	Comment = { italic = true },
+    -- 	["@comment"] = { italic = true },
+    -- },
 }
 
 -- M.nvdash = { load_on_startup = true }
@@ -21,5 +21,20 @@ M.base46 = {
 --          lazyload = false
 --      }
 --}
+
+M.ui = {
+    statusline = {
+        theme = "default", -- default/vscode/vscode_colored/minimal
+        -- default/round/block/arrow separators work only for default statusline theme
+        -- round and block will work for minimal theme only
+        separator_style = "default",
+        order = { "mode", "file", "git", "grapple", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
+        modules = {
+            grapple = function()
+                return " " .. require("grapple").statusline()
+            end
+        },
+    }
+}
 
 return M
