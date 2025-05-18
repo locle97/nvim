@@ -57,7 +57,7 @@ map("v", "<leader>/", "gc", { desc = "Toggle comment", remap = true })
 
 -- nvimtree
 -- map("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
-map("n", "<leader>e", function() require("nvim-tree.api").tree.open() end, { desc = "Open nvim tree in current window" })
+map("n", "<leader>e", function() require("nvim-tree.api").tree.open({current_window = true}) end, { desc = "Open nvim tree in current window" })
 -- map("n", "<leader>e", "<cmd>Explore<CR>", { desc = "nvimtree focus window" })
 
 -- telescope

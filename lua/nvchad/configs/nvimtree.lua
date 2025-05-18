@@ -10,11 +10,18 @@ return {
         update_root = false,
     },
     view = {
+        centralize_selection = true,
+        cursorline = true,
+        debounce_delay = 15,
         side = "left",
-        preserve_window_proportions = true,
+        preserve_window_proportions = false,
         number = true,
         relativenumber = true,
+        signcolumn = "yes",
         width = 30,
+        float = {
+            enable = true
+        },
     },
     renderer = {
         root_folder_label = false,
