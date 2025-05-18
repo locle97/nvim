@@ -25,6 +25,12 @@ return {
         icons = true, -- setting to "true" requires "nvim-web-devicons"
         status = true,
         name_pos = "start",
-        style = "basename"
-    }
+        style = "basename",
+        statusline = {
+            icon = "󰇥"
+        }
+    },
+    config = function(_, opts)
+        require("grapple").setup(opts)
+    end
 }
