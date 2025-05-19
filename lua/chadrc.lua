@@ -7,7 +7,7 @@ local M = {}
 
 M.base46 = {
     theme = "aquarium",
-    transparency = false,
+    transparency = true,
 
     -- hl_override = {
     -- 	Comment = { italic = true },
@@ -28,10 +28,10 @@ M.ui = {
         -- default/round/block/arrow separators work only for default statusline theme
         -- round and block will work for minimal theme only
         separator_style = "default",
-        order = { "mode", "file", "git", "grapple", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
+        order = { "mode", "file", "grapple", "git", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
         modules = {
             grapple = function()
-                return " " .. require("grapple").statusline()
+                return " %#Label#" .. require("grapple").statusline()
             end
         },
     }
