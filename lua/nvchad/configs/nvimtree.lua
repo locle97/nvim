@@ -9,6 +9,10 @@ return {
         enable = true,
         update_root = false,
     },
+    notify = {
+        threshold = vim.log.levels.ERROR,
+        absolute_path = true,
+    },
     view = {
         centralize_selection = true,
         cursorline = true,
