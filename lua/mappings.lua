@@ -8,7 +8,8 @@ map("n", ";", ":", { desc = "CMD enter command mode" })
 map("i", "jk", "<ESC>")
 
 map("n", "<leader>h", "yiw:%s/<C-r>\"//gI<Left><Left><Left>", { desc = "Replace current word" })
-map("v", "<leader>h", "y:%s/<C-r>\"//gI<Left><Left><Left>", { noremap = true, silent = false, desc = "Replace current selected text" })
+map("v", "<leader>h", "y:%s/<C-r>\"//gI<Left><Left><Left>",
+    { noremap = true, silent = false, desc = "Replace current selected text" })
 
 map("i", "<C-b>", "<ESC>^i", { desc = "move beginning of line" })
 map("i", "<C-e>", "<End>", { desc = "move end of line" })
@@ -46,7 +47,15 @@ map("n", "<leader>ds", vim.diagnostic.setloclist, { desc = "LSP Diagnostic locli
 
 -- tabufline
 map("n", "<leader>bb", "<cmd>Telescope buffers<CR>", { desc = "Show buffers" })
-map("n", "<leader>bo", "<cmd>Bdelete other<CR>", { desc = "Delete other buffers" })
+map("n", "<leader>bo", function()
+    local bufs = vim.api.nvim_list_bufs()
+    local current_buf = vim.api.nvim_get_current_buf()
+    for _, i in ipairs(bufs) do
+        if i ~= current_buf then
+            vim.api.nvim_buf_delete(i, {})
+        end
+    end
+end, { desc = "Delete other buffers" })
 map("n", "<tab>", "<cmd>bnext<CR>", { desc = "buffer goto next" })
 map("n", "<S-tab>", "<cmd>bprevious<CR>", { desc = "buffer goto prev" })
 map("n", "<leader>x", "<cmd>bdelete<CR>", { desc = "buffer close" })
@@ -57,7 +66,8 @@ map("v", "<leader>/", "gc", { desc = "Toggle comment", remap = true })
 
 -- nvimtree
 -- map("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
-map("n", "<leader>e", function() require("nvim-tree.api").tree.open({current_window = true}) end, { desc = "Open nvim tree in current window" })
+map("n", "<leader>e", function() require("nvim-tree.api").tree.toggle({ current_window = true }) end,
+    { desc = "Open nvim tree in current window" })
 -- map("n", "<leader>e", "<cmd>Explore<CR>", { desc = "nvimtree focus window" })
 
 -- telescope
@@ -152,8 +162,6 @@ map("n", "<leader>q", function() require("telescope.builtin").diagnostics({ bufn
     { desc = "Diagnostic setloclist", })
 map("n", "<leader>fq", function() require("telescope.builtin").diagnostics() end,
     { desc = "lsp document symbols", noremap = true, silent = true })
-map("n", "[d", function() vim.diagnostic.goto_prev() end, { desc = "goto prev" })
-map("n", "]d", function() vim.diagnostic.goto_next() end, { desc = "goto_next" })
 
 -- Lsp rename
 map("n", "<F2>", function() vim.lsp.buf.rename() end, { desc = "lsp rename", })
@@ -175,10 +183,10 @@ map("n", "<leader>ga", "<cmd>Gitsigns stage_buffer<CR>", { desc = "Stage current
 -- map("n", "<leader>hf", "<cmd>Telescope harpoon marks<CR>", { desc = "Toggle harpoon pickers" })
 
 -- Tmux
-map("n", "<c-h>",  "<cmd>TmuxNavigateLeft<cr>")
-map("n", "<c-j>",  "<cmd>TmuxNavigateDown<cr>")
-map("n", "<c-k>",  "<cmd>TmuxNavigateUp<cr>")
-map("n", "<c-l>",  "<cmd>TmuxNavigateRight<cr>")
+map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
+map("n", "<c-j>", "<cmd>TmuxNavigateDown<cr>")
+map("n", "<c-k>", "<cmd>TmuxNavigateUp<cr>")
+map("n", "<c-l>", "<cmd>TmuxNavigateRight<cr>")
 map("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>")
 
 -- remapping ; work as :
