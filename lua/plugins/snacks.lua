@@ -9,7 +9,7 @@ return {
         -- refer to the configuration section below
         bigfile = { enabled = true },
         lazygit = { enabled = false },
-        -- notifier = { enabled = true },
+        notifier = { enabled = true },
         quickfile = { enabled = true },
     },
 }
