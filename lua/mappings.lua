@@ -137,7 +137,7 @@ map("i", "jk", "<ESC>")
 
 -- Lspconfig Code action
 map("n", "<C-y>", function() vim.lsp.buf.code_action() end, { desc = "lsp code_action", })
-map("n", "<C-.>", function() vim.lsp.buf.code_action() end, { desc = "lsp code_action", })
+map({ "n", "v", "i" }, "<C-.>", function() vim.lsp.buf.code_action() end, { desc = "lsp code_action", })
 
 -- User config
 -- LSPConfig
