@@ -48,7 +48,7 @@ map("n", "<leader>ds", vim.diagnostic.setloclist, { desc = "LSP Diagnostic locli
 
 -- tabufline
 map("n", "<leader>bb", "<cmd>Telescope buffers<CR>", { desc = "Show buffers" })
-map("n", "<leader>bo", function () require('utils').remove_other_buffers() end, { desc = "Delete other buffers" })
+map("n", "<leader>bo", function() require('utils').remove_other_buffers() end, { desc = "Delete other buffers" })
 map("n", "<tab>", "<cmd>bnext<CR>", { desc = "buffer goto next" })
 map("n", "<S-tab>", "<cmd>bprevious<CR>", { desc = "buffer goto prev" })
 map("n", "<leader>x", "<cmd>bdelete<CR>", { desc = "buffer close" })
@@ -150,6 +150,13 @@ map("n", "<leader>ga", "<cmd>Gitsigns stage_buffer<CR>", { desc = "Stage current
 -- map("n", "<c-k>", "<cmd>TmuxNavigateUp<cr>")
 -- map("n", "<c-l>", "<cmd>TmuxNavigateRight<cr>")
 -- map("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>")
+
+-- Copilot Chat
+map("n", "<leader>cc", function()
+    require("CopilotChat").toggle()
+end, { desc = "Open Copilot Chat" })
+map("x", "<leader>ce", ":CopilotChatExplain<CR>",
+    { desc = "Explain the whole selected block" })
 
 -- remapping ; work as :
 map("n", ";", ":", { noremap = true, silent = false })
