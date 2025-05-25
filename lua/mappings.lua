@@ -28,10 +28,6 @@ map("n", "<Esc>", "<cmd>noh<CR>", { desc = "General Clear highlights" })
 -- map("n", "<C-s>", "<cmd>w<CR>", { desc = "General Save file" })
 map("n", "<C-c>", "<cmd>%y+<CR>", { desc = "General Copy whole file" })
 
-map("n", "<leader>n", "<cmd>set nu!<CR>", { desc = "Toggle line number" })
-map("n", "<leader>rn", "<cmd>set rnu!<CR>", { desc = "Toggle relative number" })
-map("n", "<leader>ch", "<cmd>NvCheatsheet<CR>", { desc = "Toggle nvcheatsheet" })
-
 map("x", "p", "\"_dP", { desc = "In visual mode, when pasting, no copy deleted words" })
 map("n", "J", "mzJ`z", { desc = "No jumping to end of line when J" })
 map("n", "n", "nzzzv", { desc = "Jump to next search centralize screen" })
