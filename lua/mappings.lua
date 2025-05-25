@@ -42,15 +42,7 @@ map("n", "<leader>ds", vim.diagnostic.setloclist, { desc = "LSP Diagnostic locli
 
 -- tabufline
 map("n", "<leader>bb", "<cmd>Telescope buffers<CR>", { desc = "Show buffers" })
-map("n", "<leader>bo", function()
-    local bufs = vim.api.nvim_list_bufs()
-    local current_buf = vim.api.nvim_get_current_buf()
-    for _, i in ipairs(bufs) do
-        if i ~= current_buf then
-            vim.api.nvim_buf_delete(i, {})
-        end
-    end
-end, { desc = "Delete other buffers" })
+map("n", "<leader>bo", function () require('utils').remove_other_buffers() end, { desc = "Delete other buffers" })
 map("n", "<tab>", "<cmd>bnext<CR>", { desc = "buffer goto next" })
 map("n", "<S-tab>", "<cmd>bprevious<CR>", { desc = "buffer goto prev" })
 map("n", "<leader>x", "<cmd>bdelete<CR>", { desc = "buffer close" })
@@ -98,29 +90,6 @@ end, { desc = "terminal toggleable horizontal term" })
 map({ "n", "t" }, "<A-i>", function()
     require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
 end, { desc = "terminal toggle floating term" })
-
--- whichkey
-map("n", "<leader>wK", "<cmd>WhichKey <CR>", { desc = "whichkey all keymaps" })
-
-map("n", "<leader>wk", function()
-    vim.cmd("WhichKey " .. vim.fn.input "WhichKey: ")
-end, { desc = "whichkey query lookup" })
-
--- blankline
-map("n", "<leader>cc", function()
-    local config = { scope = {} }
-    config.scope.exclude = { language = {}, node_type = {} }
-    config.scope.include = { node_type = {} }
-    local node = require("ibl.scope").get(vim.api.nvim_get_current_buf(), config)
-
-    if node then
-        local start_row, _, end_row, _ = node:range()
-        if start_row ~= end_row then
-            vim.api.nvim_win_set_cursor(vim.api.nvim_get_current_win(), { start_row + 1, 0 })
-            vim.api.nvim_feedkeys("_", "n", true)
-        end
-    end
-end, { desc = "blankline jump to current context" })
 
 -- add yours here
 
