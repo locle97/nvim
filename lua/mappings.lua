@@ -30,6 +30,12 @@ map("n", "<C-c>", "<cmd>%y+<CR>", { desc = "General Copy whole file" })
 
 map("x", "p", "\"_dP", { desc = "In visual mode, when pasting, no copy deleted words" })
 map("n", "J", "mzJ`z", { desc = "No jumping to end of line when J" })
+
+-- Mapping to move selected block up and down
+map("x", "J", ":m '>+1<CR>gv=gv", { desc = "Move the whole selected block down" })
+map("x", "K", ":m '<-2<CR>gv=gv", { desc = "Move the whole selected block up" })
+
+-- Center search results
 map("n", "n", "nzzzv", { desc = "Jump to next search centralize screen" })
 map("n", "N", "Nzzzv", { desc = "Jump to next search centralize screen" })
 
