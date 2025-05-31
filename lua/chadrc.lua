@@ -28,11 +28,20 @@ M.ui = {
         -- default/round/block/arrow separators work only for default statusline theme
         -- round and block will work for minimal theme only
         separator_style = "default",
-        order = { "mode", "file", "grapple", "git", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
+        order = { "mode", "file", "grapple", "git", "%=", "lsp_msg", "%=", "diagnostics", "rest", "lsp", "cwd", "cursor" },
         modules = {
             grapple = function()
                 return " %#Label#" .. require("grapple").statusline()
-            end
+            end,
+            rest = function()
+                local current_filetype = vim.bo.filetype
+                local absolute_path = vim.b._rest_nvim_env_file
+                if current_filetype == "http" and absolute_path ~= nil then
+                    local filename = absolute_path:match("^.+/(.+)$")
+                    return filename
+                end
+                return ""
+            end,
         },
     }
 }

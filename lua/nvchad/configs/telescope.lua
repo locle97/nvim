@@ -28,6 +28,6 @@ return {
             }
         }
     },
-    extensions_list = { "themes", "terms", "grapple" },
+    extensions_list = { "themes", "terms", "grapple", "rest" },
     extensions = {},
 }
