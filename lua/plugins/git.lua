@@ -1,0 +1,21 @@
+return {
+    {
+        'tpope/vim-fugitive',
+        event = "VeryLazy"
+    },
+    {
+        "kdheepak/lazygit.nvim",
+        lazy = false,
+        config = function()
+            vim.g.lazygit_floating_window_scaling_factor = 1
+        end
+    },
+    {
+        "lewis6991/gitsigns.nvim",
+        event = "User FilePost",
+        opts = function()
+            return require "nvchad.configs.gitsigns"
+        end,
+    },
+
+}
