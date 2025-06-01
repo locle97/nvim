@@ -17,8 +17,6 @@ return {
         "sindrets/diffview.nvim",
         event = "VeryLazy",
         config = function()
-            local actions = require("diffview.actions")
-
             require("diffview").setup({
                 enhanced_diff_hl = true,
                 file_panel = {
