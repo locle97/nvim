@@ -25,6 +25,9 @@ return {
                 keymaps = {
                     file_panel = {
                         {
+                            "n", "q", ":DiffviewClose<CR>", {desc = "Close panel"}
+                        },
+                        {
                             "n", "c",
                             function()
                                 vim.ui.input({ prompt = "Commit message: " }, function(msg)
