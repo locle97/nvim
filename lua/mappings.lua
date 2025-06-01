@@ -71,7 +71,7 @@ map("n", "<leader>ma", "<cmd>Telescope marks<CR>", { desc = "telescope find mark
 map("n", "<leader>fo", "<cmd>Telescope oldfiles<CR>", { desc = "telescope find oldfiles" })
 map("n", "<leader>fz", "<cmd>Telescope current_buffer_fuzzy_find<CR>", { desc = "telescope find in current buffer" })
 map("n", "<leader>cm", "<cmd>Telescope git_commits<CR>", { desc = "telescope git commits" })
-map("n", "<leader>gt", "<cmd>Telescope git_status<CR>", { desc = "telescope git status" })
+map("n", "<leader>gs", "<cmd>Telescope git_status<CR>", { desc = "telescope git status" })
 map("n", "<leader>pt", "<cmd>Telescope terms<CR>", { desc = "telescope pick hidden term" })
 map("n", "<leader>th", "<cmd>Telescope themes<CR>", { desc = "telescope nvchad themes" })
 map("n", "<C-p>", "<cmd> Telescope find_files <CR>", { desc = "telescope find files" })
@@ -141,8 +141,18 @@ map("n", "<leader>fm", function() vim.lsp.buf.format { async = true } end, { des
 map("v", "<leader>fm", function() vim.lsp.buf.format { async = true } end, { desc = "lsp formatting", })
 
 -- Git
-map("n", "<leader>gl", "<cmd>LazyGit<CR>", { desc = "Open LazyGit" })
-map("n", "<leader>ga", "<cmd>Gitsigns stage_buffer<CR>", { desc = "Stage current buffer" })
+map("n", "<leader>gl", ":LazyGit<CR>", { desc = "Open LazyGit" })
+map("n", "<leader>gd", function()
+    local lib = require("diffview.lib")
+    local view = lib.get_current_view()
+    if view then
+        -- Current tabpage is a Diffview; close it
+        vim.cmd.DiffviewClose()
+    else
+        -- No open Diffview exists: open a new one
+        vim.cmd.DiffviewOpen()
+    end
+end, { desc = "Toggle Git differents" })
 
 -- Tmux
 -- map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
