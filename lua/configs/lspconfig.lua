@@ -1,15 +1,6 @@
 require("nvchad.configs.lspconfig").defaults()
 
-local servers = { "html", "cssls", "angularls", "ts_ls", "roslyn", "jsonls", "prettier" }
+local servers = { "html", "cssls", "ts_ls", "omnisharp", "jsonls" }
 vim.lsp.enable(servers)
 
 local lspconfig = require('lspconfig')
-
-lspconfig.volar.setup {
-  filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
-  init_options = {
-    vue = {
-      hybridMode = false,
-    },
-  },
-}
