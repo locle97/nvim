@@ -1,6 +1,6 @@
 require("nvchad.configs.lspconfig").defaults()
 
-local servers = { "html", "cssls", "ts_ls", "omnisharp", "jsonls", "vue_ls" }
+local servers = { "html", "cssls", "omnisharp", "jsonls", "vue_ls" }
 
 vim.lsp.config('vue_ls', {
     filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
