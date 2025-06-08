@@ -43,6 +43,9 @@ M.ui = {
                 return ""
             end,
         },
+    },
+    tabufline = {
+        enabled = false
     }
 }
 
