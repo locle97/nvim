@@ -28,7 +28,6 @@ map("n", "<Esc>", "<cmd>noh<CR>", { desc = "General Clear highlights" })
 -- map("n", "<C-s>", "<cmd>w<CR>", { desc = "General Save file" })
 map("n", "<C-c>", "<cmd>%y+<CR>", { desc = "General Copy whole file" })
 
-map("x", "p", "\"_dP", { desc = "In visual mode, when pasting, no copy deleted words" })
 map("n", "J", "mzJ`z", { desc = "No jumping to end of line when J" })
 
 -- Mapping to move selected block up and down
