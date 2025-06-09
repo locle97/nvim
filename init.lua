@@ -17,7 +17,6 @@ local lazy_config = require "configs.lazy"
 require("lazy").setup({
   { import = "nvchad.plugins" },
   { import = "plugins" },
-  { import = "nvchad..blink.lazyspec" },
 }, lazy_config)
 
 -- load theme
