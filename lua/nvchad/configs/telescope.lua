@@ -28,6 +28,10 @@ return {
             }
         }
     },
-    extensions_list = { "themes", "terms", "grapple", "rest" },
-    extensions = {},
+    extensions_list = { "themes", "terms", "grapple", "rest", "live_grep_args" },
+    extensions = {
+        live_grep_args = {
+            auto_quoting = false
+        }
+    },
 }
