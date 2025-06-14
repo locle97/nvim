@@ -9,10 +9,10 @@ return {
         layout_config = {
             horizontal = {
                 prompt_position = "top",
-                preview_width = 0.55,
+                preview_width = 0.40,
             },
-            width = 0.87,
-            height = 0.80,
+            width = { padding = 0 },
+            height = { padding = 0 },
         },
         mappings = {
             n = { ["q"] = require("telescope.actions").close },
