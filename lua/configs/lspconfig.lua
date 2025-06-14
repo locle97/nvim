@@ -1,13 +1,21 @@
 require("nvchad.configs.lspconfig").defaults()
 
-local servers = { "html", "cssls", "omnisharp", "jsonls", "vue_ls" }
+local servers = { "html", "cssls", "omnisharp", "jsonls", "ts_ls" }
 
-vim.lsp.config('vue_ls', {
-    filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+vim.lsp.config('ts_ls', {
     init_options = {
-        vue = {
-            hybridMode = false,
+        plugins = {
+            {
+                name = "@vue/typescript-plugin",
+                location = "/usr/local/lib/node_modules/@vue/language-server/node_modules/@vue/typescript-plugin",
+                languages = { "javascript", "typescript", "vue" },
+            },
         },
+    },
+    filetypes = {
+        "javascript",
+        "typescript",
+        "vue",
     },
 })
 
