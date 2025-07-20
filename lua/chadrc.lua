@@ -29,7 +29,7 @@ M.ui = {
         -- round and block will work for minimal theme only
         separator_style = "default",
         order = { "mode", "file", "git", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
-        modules = {},
+        modules = { },
     },
 }
 

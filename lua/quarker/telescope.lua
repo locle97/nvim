@@ -28,6 +28,30 @@ local function navigate_to_mark(prompt_bufnr)
     end
 end
 
+local function move_mark_up(prompt_bufnr)
+    local selection = action_state.get_selected_entry()
+    if selection then
+        local index = selection.index
+        if quarker.move_mark_up(index) then
+            -- Refresh the picker
+            actions.close(prompt_bufnr)
+            M.toggle_quarker()
+        end
+    end
+end
+
+local function move_mark_down(prompt_bufnr)
+    local selection = action_state.get_selected_entry()
+    if selection then
+        local index = selection.index
+        if quarker.move_mark_down(index) then
+            -- Refresh the picker
+            actions.close(prompt_bufnr)
+            M.toggle_quarker()
+        end
+    end
+end
+
 -- Main telescope picker for quarker
 function M.toggle_quarker()
     local marks = quarker.get_marks()
@@ -49,6 +73,8 @@ function M.toggle_quarker()
                 local filename_start = string.len(string.format("[%d] ", entry.index))
                 local filename_end = filename_start + string.len(entry.filename)
 
+                -- Highlight filename in bold
+                table.insert(hl, { { filename_start, filename_end }, "TelescopeResultsIdentifier" })
                 -- Highlight path in comment color
                 table.insert(hl, { { filename_end, string.len(display_str) }, "Comment" })
 
@@ -80,6 +106,10 @@ function M.toggle_quarker()
             map("n", "dd", delete_mark)
             map("i", "<CR>", navigate_to_mark)
             map("n", "<CR>", navigate_to_mark)
+            map("i", "<C-k>", move_mark_up)
+            map("n", "<C-k>", move_mark_up)
+            map("i", "<C-j>", move_mark_down)
+            map("n", "<C-j>", move_mark_down)
 
             return true
         end,

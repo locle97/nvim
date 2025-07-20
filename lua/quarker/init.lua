@@ -3,6 +3,16 @@ local M = {}
 -- Storage for marked files per scope
 local marks = {}
 
+-- Default settings
+local default_settings = {
+    statusline = {
+        icon = "󰇥",
+        active = "[%s]",
+        inactive = " %s ",
+        include_icon = true,
+    }
+}
+
 -- Get data directory for storing marks
 local function get_data_dir()
     local data_dir = vim.fn.stdpath("data") .. "/quarker"
@@ -23,20 +33,20 @@ local function save_marks(scope)
     if not scope_marks then
         return
     end
-    
+
     local marks_file = get_marks_file(scope)
     local data = {
         scope = scope,
         marks = scope_marks,
         timestamp = os.time()
     }
-    
+
     local success, encoded = pcall(vim.json.encode, data)
     if not success then
         vim.notify("Failed to encode marks data", vim.log.levels.ERROR)
         return
     end
-    
+
     local file = io.open(marks_file, "w")
     if file then
         file:write(encoded)
@@ -49,29 +59,29 @@ end
 -- Load marks for a scope from disk
 local function load_marks(scope)
     local marks_file = get_marks_file(scope)
-    
+
     if vim.fn.filereadable(marks_file) == 0 then
         return {}
     end
-    
+
     local file = io.open(marks_file, "r")
     if not file then
         return {}
     end
-    
+
     local content = file:read("*all")
     file:close()
-    
+
     if not content or content == "" then
         return {}
     end
-    
+
     local success, data = pcall(vim.json.decode, content)
     if not success or not data or not data.marks then
         vim.notify("Failed to decode marks file: " .. marks_file, vim.log.levels.WARN)
         return {}
     end
-    
+
     return data.marks
 end
 
@@ -213,11 +223,11 @@ function M.toggle()
         vim.notify("No file to toggle mark", vim.log.levels.WARN)
         return
     end
-    
+
     local scope = get_scope()
     local relative_path = get_relative_path(filepath, scope)
     local scope_marks = get_marks()
-    
+
     -- Check if already marked
     for i, mark in ipairs(scope_marks) do
         if mark.path == relative_path then
@@ -228,16 +238,44 @@ function M.toggle()
             return
         end
     end
-    
+
     -- Mark if not already marked
     table.insert(scope_marks, {
         path = relative_path,
         full_path = filepath,
         name = vim.fn.fnamemodify(filepath, ":t")
     })
-    
+
     vim.notify(string.format("Marked file at position %d: %s", #scope_marks, relative_path), vim.log.levels.INFO)
     save_marks(scope)
+end
+
+-- Move mark up by one position
+function M.move_mark_up(index)
+    local scope_marks = get_marks()
+
+    if index < 2 or index > #scope_marks then
+        return false
+    end
+
+    -- Swap with previous mark
+    scope_marks[index], scope_marks[index - 1] = scope_marks[index - 1], scope_marks[index]
+    save_marks(get_scope())
+    return true
+end
+
+-- Move mark down by one position
+function M.move_mark_down(index)
+    local scope_marks = get_marks()
+
+    if index < 1 or index >= #scope_marks then
+        return false
+    end
+
+    -- Swap with next mark
+    scope_marks[index], scope_marks[index + 1] = scope_marks[index + 1], scope_marks[index]
+    save_marks(get_scope())
+    return true
 end
 
 -- Clear all marks for current scope
