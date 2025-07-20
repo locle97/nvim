@@ -2,7 +2,7 @@ return {
     "cbochs/grapple.nvim",
     keys = {
         {
-            "<leader>mm",
+            "<leader>m",
             function()
                 require("grapple").tag()
                 vim.cmd.mark("a")
