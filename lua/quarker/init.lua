@@ -372,8 +372,8 @@ function M.statusline()
         -- Current file is marked - show position
         result = string.format(" %s [%d] of [%d]", icon, current_index, count)
     else
-        -- Current file is not marked - show total count only
-        result = string.format(" %s [%d]", icon, count)
+        -- Current file is not marked - show dash
+        result = string.format(" %s [-] of [%d]", icon, count)
     end
 
     -- Cache the result

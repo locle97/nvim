@@ -5,6 +5,16 @@ local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local quarker = require("quarker")
 
+-- Get filetype icon
+local function get_filetype_icon(filename)
+    local ok, devicons = pcall(require, "nvim-web-devicons")
+    if ok then
+        local icon, _ = devicons.get_icon(filename, vim.fn.fnamemodify(filename, ":e"), { default = true })
+        return icon or ""
+    end
+    return ""
+end
+
 local M = {}
 
 -- Custom actions for the telescope picker
@@ -69,14 +79,17 @@ function M.toggle_quarker()
             value = mark,
             display = function(entry)
                 local hl = {}
-                local display_str = string.format("[%d] %s %s", entry.index, entry.filename, entry.path)
-                local filename_start = string.len(string.format("[%d] ", entry.index))
-                local filename_end = filename_start + string.len(entry.filename)
+                local filetype_icon = get_filetype_icon(entry.filename)
+                local display_str = string.format("[%d] %s %s %s", entry.index, filetype_icon, entry.filename, entry.path)
 
-                -- Highlight filename in bold
-                table.insert(hl, { { filename_start, filename_end }, "TelescopeResultsIdentifier" })
+                local index_part = string.format("[%d] ", entry.index)
+                local icon_part = filetype_icon .. " "
+                local filename_start = string.len(index_part .. icon_part)
+                local filename_end = filename_start + string.len(entry.filename)
+                local path_start = filename_end + 1
+
                 -- Highlight path in comment color
-                table.insert(hl, { { filename_end, string.len(display_str) }, "Comment" })
+                table.insert(hl, { { path_start, string.len(display_str) }, "Comment" })
 
                 return display_str, hl
             end,

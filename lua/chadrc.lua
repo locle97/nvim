@@ -28,8 +28,11 @@ M.ui = {
         -- default/round/block/arrow separators work only for default statusline theme
         -- round and block will work for minimal theme only
         separator_style = "default",
-        order = { "mode", "file", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
+        order = { "mode", "file", "quarker", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
         modules = {
+            quarker = function()
+                return "%#Label#" .. require("quarker").statusline()
+            end,
         },
     },
 }
