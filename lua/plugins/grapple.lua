@@ -1,5 +1,5 @@
 return {
-    "cbochs/grapple.nvim",
+    "locle97/grapple.nvim",
     keys = {
         {
             "<leader>m",
