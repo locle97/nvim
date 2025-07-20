@@ -1,5 +1,6 @@
 return {
     "locle97/grapple.nvim",
+    enabled = false,
     keys = {
         {
             "<leader>m",
