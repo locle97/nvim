@@ -10,7 +10,9 @@ local cache = {
     current_file = nil,
     current_file_timestamp = 0,
     statusline_result = "",
-    statusline_timestamp = 0
+    statusline_timestamp = 0,
+    marks_cache = {},
+    marks_timestamp = 0
 }
 
 -- Default settings
@@ -61,8 +63,9 @@ local function save_marks(scope)
     if file then
         file:write(encoded)
         file:close()
-        -- Invalidate statusline cache when marks change
+        -- Invalidate caches when marks change
         cache.statusline_timestamp = 0
+        cache.marks_timestamp = 0
     else
         vim.notify("Failed to save marks to " .. marks_file, vim.log.levels.ERROR)
     end
@@ -100,12 +103,12 @@ end
 -- Get the scope (git root or CWD) with caching
 local function get_scope()
     local now = vim.loop.hrtime()
-    -- Cache scope for 1 second (1e9 nanoseconds)
-    if cache.scope and (now - cache.scope_timestamp) < 1e9 then
+    -- Cache scope for 5 seconds to reduce git command calls
+    if cache.scope and (now - cache.scope_timestamp) < 5e9 then
         return cache.scope
     end
 
-    local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+    local git_root = vim.fn.systemlist("git rev-parse --show-toplevel 2>/dev/null")[1]
     local scope
     if vim.v.shell_error == 0 and git_root and git_root ~= "" then
         scope = git_root
@@ -315,14 +318,23 @@ function M.statusline()
     local now = vim.loop.hrtime()
     local current_file = vim.fn.expand("%:p")
 
-    -- Cache statusline result for 100ms to avoid excessive computation
+    -- Cache statusline result for 200ms to avoid excessive computation during rapid navigation
     if cache.statusline_result and
        cache.current_file == current_file and
-       (now - cache.statusline_timestamp) < 1e8 then
+       (now - cache.statusline_timestamp) < 2e8 then
         return cache.statusline_result
     end
 
-    local scope_marks = get_marks()
+    -- Use cached marks if available and recent (within 500ms)
+    local scope_marks
+    if cache.marks_cache and (now - cache.marks_timestamp) < 5e8 then
+        scope_marks = cache.marks_cache
+    else
+        scope_marks = get_marks()
+        cache.marks_cache = scope_marks
+        cache.marks_timestamp = now
+    end
+
     local count = #scope_marks
 
     if count == 0 then
@@ -339,7 +351,8 @@ function M.statusline()
         return ""
     end
 
-    local scope = get_scope()
+    -- Only get scope if we need to calculate relative path
+    local scope = cache.scope or get_scope()
     local relative_path = get_relative_path(current_file, scope)
     local current_index = nil
 
