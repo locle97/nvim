@@ -3,6 +3,16 @@ local M = {}
 -- Storage for marked files per scope
 local marks = {}
 
+-- Cache for expensive operations
+local cache = {
+    scope = nil,
+    scope_timestamp = 0,
+    current_file = nil,
+    current_file_timestamp = 0,
+    statusline_result = "",
+    statusline_timestamp = 0
+}
+
 -- Default settings
 local default_settings = {
     statusline = {
@@ -51,6 +61,8 @@ local function save_marks(scope)
     if file then
         file:write(encoded)
         file:close()
+        -- Invalidate statusline cache when marks change
+        cache.statusline_timestamp = 0
     else
         vim.notify("Failed to save marks to " .. marks_file, vim.log.levels.ERROR)
     end
@@ -85,13 +97,25 @@ local function load_marks(scope)
     return data.marks
 end
 
--- Get the scope (git root or CWD)
+-- Get the scope (git root or CWD) with caching
 local function get_scope()
-    local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
-    if vim.v.shell_error == 0 and git_root and git_root ~= "" then
-        return git_root
+    local now = vim.loop.hrtime()
+    -- Cache scope for 1 second (1e9 nanoseconds)
+    if cache.scope and (now - cache.scope_timestamp) < 1e9 then
+        return cache.scope
     end
-    return vim.fn.getcwd()
+
+    local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+    local scope
+    if vim.v.shell_error == 0 and git_root and git_root ~= "" then
+        scope = git_root
+    else
+        scope = vim.fn.getcwd()
+    end
+
+    cache.scope = scope
+    cache.scope_timestamp = now
+    return scope
 end
 
 -- Get the current scope's marks
@@ -286,4 +310,64 @@ function M.clear_marks()
     vim.notify("Cleared all marks for current scope", vim.log.levels.INFO)
 end
 
+-- Get statusline component showing current position in marked files
+function M.statusline()
+    local now = vim.loop.hrtime()
+    local current_file = vim.fn.expand("%:p")
+
+    -- Cache statusline result for 100ms to avoid excessive computation
+    if cache.statusline_result and
+       cache.current_file == current_file and
+       (now - cache.statusline_timestamp) < 1e8 then
+        return cache.statusline_result
+    end
+
+    local scope_marks = get_marks()
+    local count = #scope_marks
+
+    if count == 0 then
+        cache.statusline_result = ""
+        cache.current_file = current_file
+        cache.statusline_timestamp = now
+        return ""
+    end
+
+    if current_file == "" then
+        cache.statusline_result = ""
+        cache.current_file = current_file
+        cache.statusline_timestamp = now
+        return ""
+    end
+
+    local scope = get_scope()
+    local relative_path = get_relative_path(current_file, scope)
+    local current_index = nil
+
+    -- Find current file's index in marks
+    for i, mark in ipairs(scope_marks) do
+        if mark.path == relative_path then
+            current_index = i
+            break
+        end
+    end
+
+    local settings = default_settings.statusline
+    local icon = settings.include_icon and settings.icon or ""
+    local result
+
+    if current_index then
+        -- Current file is marked - show position
+        result = string.format(" %s [%d] of [%d]", icon, current_index, count)
+    else
+        -- Current file is not marked - show total count only
+        result = string.format(" %s [%d]", icon, count)
+    end
+
+    -- Cache the result
+    cache.statusline_result = result
+    cache.current_file = current_file
+    cache.statusline_timestamp = now
+
+    return result
+end
 return M
