@@ -5,14 +5,14 @@ local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local quarker = require("quarker")
 
--- Get filetype icon
+-- Get filetype icon with color
 local function get_filetype_icon(filename)
     local ok, devicons = pcall(require, "nvim-web-devicons")
     if ok then
-        local icon, _ = devicons.get_icon(filename, vim.fn.fnamemodify(filename, ":e"), { default = true })
-        return icon or ""
+        local icon, hl_group = devicons.get_icon(filename, vim.fn.fnamemodify(filename, ":e"), { default = true })
+        return icon or "", hl_group
     end
-    return ""
+    return "", nil
 end
 
 local M = {}
@@ -72,14 +72,25 @@ function M.toggle_quarker()
         return
     end
 
+    -- Get current buffer path for default selection
+    local current_buf_path = vim.api.nvim_buf_get_name(0)
+    local current_buf_path_resolved = vim.fn.resolve(current_buf_path)
+    local default_selection = 1 -- Default to first entry
+
     -- Prepare entries for telescope
     local entries = {}
     for i, mark in ipairs(marks) do
+        -- Check if this mark matches current buffer (try both original and resolved paths)
+        local mark_path_resolved = vim.fn.resolve(mark.path)
+        if mark.path == current_buf_path or mark_path_resolved == current_buf_path_resolved then
+            default_selection = i
+        end
+
         table.insert(entries, {
             value = mark,
             display = function(entry)
                 local hl = {}
-                local filetype_icon = get_filetype_icon(entry.filename)
+                local filetype_icon, icon_hl = get_filetype_icon(entry.filename)
                 local display_str = string.format("[%d] %s %s %s", entry.index, filetype_icon, entry.filename, entry.path)
 
                 local index_part = string.format("[%d] ", entry.index)
@@ -88,12 +99,17 @@ function M.toggle_quarker()
                 local filename_end = filename_start + string.len(entry.filename)
                 local path_start = filename_end + 1
 
+                -- Highlight icon with its color
+                if icon_hl and filetype_icon ~= "" then
+                    table.insert(hl, { { string.len(index_part), string.len(index_part) + string.len(filetype_icon) }, icon_hl })
+                end
+
                 -- Highlight path in comment color
                 table.insert(hl, { { path_start, string.len(display_str) }, "Comment" })
 
                 return display_str, hl
             end,
-            ordinal = mark.path,
+            ordinal = string.format("[%d] %s", i, mark.name),
             index = i,
             path = mark.path,
             filename = mark.name
@@ -110,6 +126,7 @@ function M.toggle_quarker()
         },
         sorter = conf.generic_sorter({}),
         previewer = conf.file_previewer({}),
+        default_selection_index = default_selection,
         attach_mappings = function(prompt_bufnr, map)
             -- Default action: navigate to file
             actions.select_default:replace(navigate_to_mark)
