@@ -30,6 +30,15 @@ local function delete_mark(prompt_bufnr)
     end
 end
 
+local function clear_all_marks(prompt_bufnr)
+    -- Ask for confirmation
+    local choice = vim.fn.confirm("Clear all marks for current scope?", "&Yes\n&No", 2)
+    if choice == 1 then
+        quarker.clear_marks()
+        actions.close(prompt_bufnr)
+    end
+end
+
 local function navigate_to_mark(prompt_bufnr)
     local selection = action_state.get_selected_entry()
     if selection then
@@ -155,6 +164,8 @@ function M.toggle_quarker()
             map("n", "<C-k>", move_mark_up)
             map("i", "<C-j>", move_mark_down)
             map("n", "<C-j>", move_mark_down)
+            map("i", "<C-x>", clear_all_marks)
+            map("n", "<C-x>", clear_all_marks)
 
             return true
         end,
