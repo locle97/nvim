@@ -105,7 +105,7 @@ function M.toggle_quarker()
             display = function(entry)
                 local hl = {}
                 local filetype_icon, icon_hl = get_filetype_icon(entry.filename)
-                local display_str = string.format("[%d] %s %s %s", entry.index, filetype_icon, entry.filename, entry.path)
+                local display_str = string.format("[%d] %s %s %s", entry.index, filetype_icon, entry.filename, entry.relative_path)
 
                 local index_part = string.format("[%d] ", entry.index)
                 local icon_part = filetype_icon .. " "
@@ -125,7 +125,8 @@ function M.toggle_quarker()
             end,
             ordinal = string.format("[%d] %s", i, mark.name),
             index = i,
-            path = full_path,  -- Use full path for telescope
+            path = full_path,  -- Use full path for telescope previewer
+            relative_path = mark.path,  -- Store relative path for display
             filename = mark.name
         })
     end
