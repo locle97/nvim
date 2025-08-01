@@ -74,18 +74,32 @@ function M.toggle_quarker()
 
     -- Get current buffer path for default selection
     local current_buf_path = vim.api.nvim_buf_get_name(0)
-    local current_buf_path_resolved = vim.fn.resolve(current_buf_path)
     local default_selection = 1 -- Default to first entry
+    
+    -- Convert current buffer path to relative path for comparison
+    local current_relative_path = ""
+    if current_buf_path ~= "" then
+        if current_buf_path:sub(1, #scope) == scope then
+            current_relative_path = current_buf_path:sub(#scope + 1)
+            if current_relative_path:sub(1, 1) == "/" then
+                current_relative_path = current_relative_path:sub(2)
+            end
+        else
+            current_relative_path = current_buf_path
+        end
+    end
 
     -- Prepare entries for telescope
     local entries = {}
     for i, mark in ipairs(marks) do
-        -- Check if this mark matches current buffer (try both original and resolved paths)
-        local mark_path_resolved = vim.fn.resolve(mark.path)
-        if mark.path == current_buf_path or mark_path_resolved == current_buf_path_resolved then
+        -- Check if this mark matches current buffer (compare relative paths)
+        if current_relative_path ~= "" and mark.path == current_relative_path then
             default_selection = i
         end
 
+        -- Create full path for telescope previewer
+        local full_path = scope .. "/" .. mark.path
+        
         table.insert(entries, {
             value = mark,
             display = function(entry)
@@ -111,7 +125,7 @@ function M.toggle_quarker()
             end,
             ordinal = string.format("[%d] %s", i, mark.name),
             index = i,
-            path = mark.path,
+            path = full_path,  -- Use full path for telescope
             filename = mark.name
         })
     end
