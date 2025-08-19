@@ -9,13 +9,12 @@ M.base46 = {
     theme = "aquarium",
     transparency = true,
 
-    -- hl_override = {
-    -- 	Comment = { italic = true },
-    -- 	["@comment"] = { italic = true },
-    -- },
+    hl_override = {
+        TelescopeSelection = { bg = "#34343e", fg = "#ced4df", bold = true },
+    },
 }
 
-M.nvdash = { load_on_startup = false }
+M.nvdash = { load_on_startup = true }
 -- M.ui = {
 --       tabufline = {
 --          lazyload = false
@@ -24,7 +23,7 @@ M.nvdash = { load_on_startup = false }
 
 M.ui = {
     statusline = {
-        theme = "default", -- default/vscode/vscode_colored/minimal
+        theme = "minimal", -- default/vscode/vscode_colored/minimal
         -- default/round/block/arrow separators work only for default statusline theme
         -- round and block will work for minimal theme only
         separator_style = "default",
