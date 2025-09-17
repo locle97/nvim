@@ -1,5 +1,5 @@
 return {
-    enabled = false,
+    enabled = true,
     "utilyre/barbecue.nvim",
     name = "barbecue",
     version = "*",
@@ -9,6 +9,8 @@ return {
         "nvim-tree/nvim-web-devicons", -- optional dependency
     },
     opts = {
+        attach_navic = false,
+        show_navic = false
         -- configurations go here
     },
 }

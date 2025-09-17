@@ -22,6 +22,9 @@ M.nvdash = { load_on_startup = true }
 --}
 
 M.ui = {
+    tabufline = {
+         lazyload = false
+    },
     statusline = {
         theme = "minimal", -- default/vscode/vscode_colored/minimal
         -- default/round/block/arrow separators work only for default statusline theme
