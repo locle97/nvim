@@ -169,4 +169,7 @@ map("x", "<leader>ce", ":CopilotChatExplain<CR>",
 -- remapping ; work as :
 map("n", ";", ":", { noremap = true, silent = false })
 
+-- Copy relative path
+map("n", "<leader>y", function() require('utils').copy_relative_path() end, { desc = "Copy relative path" })
+
 -- End user config
