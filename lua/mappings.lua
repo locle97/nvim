@@ -151,6 +151,34 @@ map("n", "<leader>gd", function()
         vim.cmd.DiffviewOpen()
     end
 end, { desc = "Toggle Git differents" })
+-- Navigation
+local gitsigns = require('gitsigns')
+
+map('n', ']c', function()
+  if vim.wo.diff then
+    vim.cmd.normal({']c', bang = true})
+  else
+    gitsigns.nav_hunk('next')
+  end
+end)
+
+map('n', '[c', function()
+  if vim.wo.diff then
+    vim.cmd.normal({'[c', bang = true})
+  else
+    gitsigns.nav_hunk('prev')
+  end
+end)
+
+map('n', '<leader>hs', gitsigns.stage_hunk)
+map('n', '<leader>hr', gitsigns.reset_hunk)
+map('v', '<leader>hs', function()
+  gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
+end)
+
+map('v', '<leader>hr', function()
+  gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
+end)
 
 -- Tmux
 -- map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
