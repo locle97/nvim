@@ -181,11 +181,11 @@ map('v', '<leader>hr', function()
 end)
 
 -- Tmux
--- map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
--- map("n", "<c-j>", "<cmd>TmuxNavigateDown<cr>")
--- map("n", "<c-k>", "<cmd>TmuxNavigateUp<cr>")
--- map("n", "<c-l>", "<cmd>TmuxNavigateRight<cr>")
--- map("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>")
+map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
+map("n", "<c-j>", "<cmd>TmuxNavigateDown<cr>")
+map("n", "<c-k>", "<cmd>TmuxNavigateUp<cr>")
+map("n", "<c-l>", "<cmd>TmuxNavigateRight<cr>")
+map("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>")
 
 -- Copilot Chat
 map("n", "<leader>cc", function()
