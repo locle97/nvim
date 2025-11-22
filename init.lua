@@ -26,6 +26,7 @@ dofile(vim.g.base46_cache .. "statusline")
 require "options"
 require "nvchad.autocmds"
 require "commands.notes"
+require "commands.live-grep-quick"
 
 vim.schedule(function()
   require "mappings"
