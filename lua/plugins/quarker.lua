@@ -2,7 +2,7 @@ return {
     dir = vim.fn.stdpath("config") .. "/lua/quarker",
     name = "quarker",
     dependencies = {
-        "nvim-telescope/telescope.nvim",
+        "nvim-tree/nvim-web-devicons",
     },
     keys = {
         {
@@ -15,7 +15,7 @@ return {
         {
             "<leader><leader>",
             function()
-                require("quarker.telescope").toggle_quarker()
+                require("quarker.float").toggle_quarker()
             end,
             desc = "Quarker: Toggle marks menu"
         },
@@ -95,7 +95,7 @@ return {
         end, { desc = "Unmark current file with Quarker" })
         
         vim.api.nvim_create_user_command("QuarkerToggle", function()
-            require("quarker.telescope").toggle_quarker()
+            require("quarker.float").toggle_quarker()
         end, { desc = "Toggle Quarker marks menu" })
         
         vim.api.nvim_create_user_command("QuarkerClear", function()
