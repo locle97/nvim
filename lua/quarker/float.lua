@@ -125,18 +125,7 @@ local function render_buffer()
         })
     end
 
-    -- Calculate padding to push footer to bottom
-    local win_height = vim.api.nvim_win_get_height(state.win)
-    local content_lines = #lines -- header + separator + marks
-    local footer_lines = 2 -- separator + help text
-    local padding_needed = win_height - content_lines - footer_lines
-
-    -- Add padding lines
-    for _ = 1, math.max(0, padding_needed) do
-        table.insert(lines, "")
-    end
-
-    -- Add footer with help (stuck at bottom)
+    -- Add footer with help
     table.insert(lines, string.rep("─", vim.api.nvim_win_get_width(state.win) - 2))
     table.insert(lines, "? help | 1-9 quick jump | ↑↓/jk navigate | <CR> open | dd delete | <C-k/j> move | <C-x> clear | q quit")
 
@@ -350,17 +339,6 @@ local function setup_keymaps()
     vim.api.nvim_create_autocmd('CursorMoved', {
         buffer = state.buf,
         callback = update_selected_index
-    })
-
-    -- Re-render on window resize to keep footer at bottom
-    vim.api.nvim_create_autocmd('VimResized', {
-        buffer = state.buf,
-        callback = function()
-            if state.win and vim.api.nvim_win_is_valid(state.win) then
-                vim.api.nvim_win_set_config(state.win, get_window_config())
-                render_buffer()
-            end
-        end
     })
 end
 
