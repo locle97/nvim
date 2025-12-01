@@ -19,6 +19,13 @@ return {
             end,
             desc = "Quarker: Toggle marks menu"
         },
+        {
+            "<leader>qs",
+            function()
+                require("quarker.telescope").scope_manager()
+            end,
+            desc = "Quarker: Scope manager"
+        },
         -- Quick navigation keys
         {
             "<leader>1",
