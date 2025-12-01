@@ -127,7 +127,7 @@ local function render_buffer()
 
     -- Add footer with help
     table.insert(lines, string.rep("─", vim.api.nvim_win_get_width(state.win) - 2))
-    table.insert(lines, "? help | ↑↓/jk navigate | <CR> open | dd delete | <C-k/j> move | <C-x> clear | q quit")
+    table.insert(lines, "? help | 1-9 quick jump | ↑↓/jk navigate | <CR> open | dd delete | <C-k/j> move | <C-x> clear | q quit")
 
     -- Set buffer content
     vim.api.nvim_buf_set_option(state.buf, 'modifiable', true)
@@ -192,6 +192,16 @@ local function navigate_to_mark()
     quarker.navigate(state.selected_index)
 end
 
+-- Navigate to mark by index (for numeric shortcuts)
+local function navigate_to_index(index)
+    if index < 1 or index > #state.marks then
+        return
+    end
+
+    close_window()
+    quarker.navigate(index)
+end
+
 -- Delete selected mark
 local function delete_mark()
     update_selected_index()
@@ -251,6 +261,7 @@ local function show_help()
         "Quarker Help",
         "",
         "Navigation:",
+        "  1-9          - Quick jump to mark by number",
         "  ↑/k          - Move up",
         "  ↓/j          - Move down",
         "  <CR>         - Open selected mark",
@@ -307,6 +318,13 @@ local function setup_keymaps()
     vim.keymap.set('n', '<CR>', navigate_to_mark, opts)
     vim.keymap.set('n', 'q', close_window, opts)
     vim.keymap.set('n', '<Esc>', close_window, opts)
+
+    -- Numeric shortcuts (1-9)
+    for i = 1, 9 do
+        vim.keymap.set('n', tostring(i), function()
+            navigate_to_index(i)
+        end, opts)
+    end
 
     -- Mark operations
     vim.keymap.set('n', 'dd', delete_mark, opts)
