@@ -8,7 +8,10 @@ local state = {
     win = nil,
     marks = {},
     selected_index = 1,
-    scope = nil
+    scope = nil,
+    filter_active = false,
+    filter_text = "",
+    filtered_marks = {}
 }
 
 -- Get filetype icon with color
@@ -19,6 +22,215 @@ local function get_filetype_icon(filename)
         return icon or "", hl_group
     end
     return "", nil
+end
+
+
+-- Render the buffer content
+local function render_buffer()
+    if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then
+        return
+    end
+
+    local lines = {}
+    local highlights = {}
+
+    -- Determine which marks to display
+    -- Use filtered_marks if we have a filter (either active or confirmed)
+    local is_filtered = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+    local display_marks = is_filtered and state.filtered_marks or state.marks
+
+    -- Add header with filter status
+    if state.filter_active then
+        local filter_display = state.filter_text ~= "" and state.filter_text or "_"
+        table.insert(lines, string.format("Filter: %s | %d/%d marks", filter_display, #state.filtered_marks, #state.marks))
+    elseif is_filtered then
+        table.insert(lines, string.format("Filtered: \"%s\" | %d/%d marks | Press 'c' to clear", state.filter_text, #state.filtered_marks, #state.marks))
+    else
+        table.insert(lines, string.format("Press '?' for help | %d marks", #state.marks))
+    end
+    table.insert(lines, string.rep("─", vim.api.nvim_win_get_width(state.win) - 2))
+
+    for i, mark in ipairs(display_marks) do
+        local icon, hl_group = get_filetype_icon(mark.name)
+        local line = string.format(" [%d] %s %s  %s", i, icon, mark.name, mark.path)
+        table.insert(lines, line)
+
+        -- Store highlight information
+        if hl_group then
+            local icon_col = #string.format(" [%d] ", i)
+            table.insert(highlights, {
+                line = #lines - 1, -- 0-indexed
+                col = icon_col,
+                length = #icon,
+                hl_group = hl_group
+            })
+        end
+
+        -- Highlight path in comment color
+        local path_col = #string.format(" [%d] %s %s  ", i, icon, mark.name)
+        table.insert(highlights, {
+            line = #lines - 1,
+            col = path_col,
+            length = #mark.path,
+            hl_group = "Comment"
+        })
+    end
+
+    -- Calculate padding to push footer to bottom
+    local win_height = vim.api.nvim_win_get_height(state.win)
+    local content_lines = #lines -- header + separator + marks
+    local footer_lines = 2 -- separator + help text
+    local padding_needed = win_height - content_lines - footer_lines
+
+    -- Add padding lines
+    for _ = 1, math.max(0, padding_needed) do
+        table.insert(lines, "")
+    end
+
+    -- Add footer with help (stuck at bottom)
+    table.insert(lines, string.rep("─", vim.api.nvim_win_get_width(state.win) - 2))
+    if state.filter_active then
+        table.insert(lines, "Type to filter | <CR> confirm | <Esc> cancel")
+    elseif is_filtered then
+        table.insert(lines, "? help | c clear filter | f re-filter | ↑↓/jk navigate | <CR> open | dd delete | q quit")
+    else
+        table.insert(lines, "? help | f filter | 1-9 quick jump | ↑↓/jk navigate | <CR> open | dd delete | <C-k/j> move | <C-x> clear | q quit")
+    end
+
+    -- Set buffer content
+    vim.api.nvim_buf_set_option(state.buf, 'modifiable', true)
+    vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+    vim.api.nvim_buf_set_option(state.buf, 'modifiable', false)
+
+    -- Apply highlights
+    local ns_id = vim.api.nvim_create_namespace('quarker_highlights')
+    vim.api.nvim_buf_clear_namespace(state.buf, ns_id, 0, -1)
+
+    for _, hl in ipairs(highlights) do
+        vim.api.nvim_buf_add_highlight(
+            state.buf,
+            ns_id,
+            hl.hl_group,
+            hl.line,
+            hl.col,
+            hl.col + hl.length
+        )
+    end
+
+    -- Set cursor to selected index (add 2 for header lines)
+    if state.win and vim.api.nvim_win_is_valid(state.win) then
+        vim.api.nvim_win_set_cursor(state.win, {state.selected_index + 2, 0})
+    end
+end
+
+-- Filter marks based on filter text
+local function filter_marks()
+    if state.filter_text == "" then
+        state.filtered_marks = state.marks
+        return
+    end
+
+    state.filtered_marks = {}
+    local filter_lower = state.filter_text:lower()
+
+    for _, mark in ipairs(state.marks) do
+        -- Match against filename and path
+        if mark.name:lower():find(filter_lower, 1, true) or
+           mark.path:lower():find(filter_lower, 1, true) then
+            table.insert(state.filtered_marks, mark)
+        end
+    end
+end
+
+-- Exit filter mode
+-- keep_filter: if true, keeps the filtered results; if false, resets to show all marks
+local function exit_filter_mode(keep_filter)
+    state.filter_active = false
+
+    if keep_filter then
+        -- Keep the filtered results for navigation
+        -- Reset selected index to first filtered item
+        state.selected_index = 1
+    else
+        -- Clear filter and show all marks
+        state.filter_text = ""
+        state.filtered_marks = state.marks
+        -- Reset selected index to valid range
+        if state.selected_index > #state.marks then
+            state.selected_index = math.max(1, #state.marks)
+        end
+    end
+
+    render_buffer()
+end
+
+-- Clear the filter and show all marks (can be called from normal mode)
+local function clear_filter()
+    if state.filtered_marks ~= state.marks then
+        state.filter_text = ""
+        state.filtered_marks = state.marks
+        state.selected_index = 1
+        render_buffer()
+    end
+end
+
+-- Handle input character in filter mode
+local function handle_filter_input()
+    local ok, char = pcall(vim.fn.getcharstr)
+    if not ok or char == "" then
+        exit_filter_mode(false)
+        return
+    end
+
+    -- Get first byte for checking
+    local first_byte = char:byte(1)
+
+    -- Handle escape sequences and special keys
+    if first_byte == 27 then  -- ESC - cancel filter and show all marks
+        exit_filter_mode(false)
+        return
+    elseif first_byte == 13 or first_byte == 10 then  -- Enter - confirm filter and keep results
+        exit_filter_mode(true)
+        return
+    elseif first_byte == 8 or first_byte == 127 then  -- Backspace (^H or DEL)
+        if #state.filter_text > 0 then
+            state.filter_text = state.filter_text:sub(1, -2)
+            filter_marks()
+            render_buffer()
+        end
+    elseif first_byte == 128 then  -- Special key prefix in Neovim
+        -- Check if it's backspace special key
+        if char:find("kb") or char:find("kD") then
+            if #state.filter_text > 0 then
+                state.filter_text = state.filter_text:sub(1, -2)
+                filter_marks()
+                render_buffer()
+            end
+        end
+        -- Ignore other special keys
+    elseif first_byte >= 32 and first_byte <= 126 then  -- Printable ASCII
+        state.filter_text = state.filter_text .. char
+        filter_marks()
+        render_buffer()
+    end
+
+    -- Continue reading input if still in filter mode
+    if state.filter_active then
+        vim.defer_fn(handle_filter_input, 10)
+    end
+end
+
+-- Enter filter mode
+local function enter_filter_mode()
+    state.filter_active = true
+    -- Keep existing filter text if re-entering filter mode
+    -- (user can clear it with backspace if desired)
+
+    -- Render initial state
+    render_buffer()
+
+    -- Start input loop
+    vim.defer_fn(handle_filter_input, 10)
 end
 
 -- Create or get buffer
@@ -80,91 +292,21 @@ end
 
 -- Close the float window
 local function close_window()
+    -- Exit filter mode if active
+    if state.filter_active then
+        state.filter_active = false
+    end
+
+    -- Clear filter state when closing
+    state.filter_text = ""
+    state.filtered_marks = {}
+
     if state.win and vim.api.nvim_win_is_valid(state.win) then
         vim.api.nvim_win_close(state.win, true)
     end
     state.win = nil
 end
 
--- Render the buffer content
-local function render_buffer()
-    if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then
-        return
-    end
-
-    local lines = {}
-    local highlights = {}
-
-    -- Add header
-    table.insert(lines, string.format("Press '?' for help | %d marks", #state.marks))
-    table.insert(lines, string.rep("─", vim.api.nvim_win_get_width(state.win) - 2))
-
-    for i, mark in ipairs(state.marks) do
-        local icon, hl_group = get_filetype_icon(mark.name)
-        local line = string.format(" [%d] %s %s  %s", i, icon, mark.name, mark.path)
-        table.insert(lines, line)
-
-        -- Store highlight information
-        if hl_group then
-            local icon_col = #string.format(" [%d] ", i)
-            table.insert(highlights, {
-                line = #lines - 1, -- 0-indexed
-                col = icon_col,
-                length = #icon,
-                hl_group = hl_group
-            })
-        end
-
-        -- Highlight path in comment color
-        local path_col = #string.format(" [%d] %s %s  ", i, icon, mark.name)
-        table.insert(highlights, {
-            line = #lines - 1,
-            col = path_col,
-            length = #mark.path,
-            hl_group = "Comment"
-        })
-    end
-
-    -- Calculate padding to push footer to bottom
-    local win_height = vim.api.nvim_win_get_height(state.win)
-    local content_lines = #lines -- header + separator + marks
-    local footer_lines = 2 -- separator + help text
-    local padding_needed = win_height - content_lines - footer_lines
-
-    -- Add padding lines
-    for _ = 1, math.max(0, padding_needed) do
-        table.insert(lines, "")
-    end
-
-    -- Add footer with help (stuck at bottom)
-    table.insert(lines, string.rep("─", vim.api.nvim_win_get_width(state.win) - 2))
-    table.insert(lines, "? help | 1-9 quick jump | ↑↓/jk navigate | <CR> open | dd delete | <C-k/j> move | <C-x> clear | q quit")
-
-    -- Set buffer content
-    vim.api.nvim_buf_set_option(state.buf, 'modifiable', true)
-    vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
-    vim.api.nvim_buf_set_option(state.buf, 'modifiable', false)
-
-    -- Apply highlights
-    local ns_id = vim.api.nvim_create_namespace('quarker_highlights')
-    vim.api.nvim_buf_clear_namespace(state.buf, ns_id, 0, -1)
-
-    for _, hl in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(
-            state.buf,
-            ns_id,
-            hl.hl_group,
-            hl.line,
-            hl.col,
-            hl.col + hl.length
-        )
-    end
-
-    -- Set cursor to selected index (add 2 for header lines)
-    if state.win and vim.api.nvim_win_is_valid(state.win) then
-        vim.api.nvim_win_set_cursor(state.win, {state.selected_index + 2, 0})
-    end
-end
 
 -- Update selected index based on cursor position
 local function update_selected_index()
@@ -178,11 +320,15 @@ local function update_selected_index()
     -- Account for header (2 lines)
     local index = line - 2
 
+    -- Use filtered marks if we have a filter (either active or confirmed)
+    local is_filtered = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+    local display_marks = is_filtered and state.filtered_marks or state.marks
+
     -- Clamp to valid range
     if index < 1 then
         index = 1
-    elseif index > #state.marks then
-        index = #state.marks
+    elseif index > #display_marks then
+        index = #display_marks
     end
 
     state.selected_index = index
@@ -195,12 +341,26 @@ end
 local function navigate_to_mark()
     update_selected_index()
 
-    if state.selected_index < 1 or state.selected_index > #state.marks then
+    -- Use filtered marks if we have a filter (either active or confirmed)
+    local is_filtered = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+    local display_marks = is_filtered and state.filtered_marks or state.marks
+
+    if state.selected_index < 1 or state.selected_index > #display_marks then
         return
     end
 
+    -- Get the actual mark from the display marks
+    local mark = display_marks[state.selected_index]
+
     close_window()
-    quarker.navigate(state.selected_index)
+
+    -- Find the index in the original marks list
+    for i, m in ipairs(state.marks) do
+        if m.path == mark.path then
+            quarker.navigate(i)
+            return
+        end
+    end
 end
 
 -- Navigate to mark by index (for numeric shortcuts)
@@ -217,7 +377,27 @@ end
 local function delete_mark()
     update_selected_index()
 
-    if quarker.remove_mark(state.selected_index) then
+    -- Use filtered marks if we have a filter (either active or confirmed)
+    local is_filtered = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+    local display_marks = is_filtered and state.filtered_marks or state.marks
+
+    if state.selected_index < 1 or state.selected_index > #display_marks then
+        return
+    end
+
+    -- Get the actual mark from the display marks
+    local mark = display_marks[state.selected_index]
+
+    -- Find the index in the original marks list
+    local actual_index = nil
+    for i, m in ipairs(state.marks) do
+        if m.path == mark.path then
+            actual_index = i
+            break
+        end
+    end
+
+    if actual_index and quarker.remove_mark(actual_index) then
         -- Reload marks and refresh
         state.marks = quarker.get_marks()
 
@@ -226,9 +406,16 @@ local function delete_mark()
             return
         end
 
+        -- Re-filter if we had a filter
+        if is_filtered then
+            filter_marks()
+        end
+
         -- Adjust selected index if needed
-        if state.selected_index > #state.marks then
-            state.selected_index = #state.marks
+        local is_filtered_after = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+        local display_marks_after = is_filtered_after and state.filtered_marks or state.marks
+        if state.selected_index > #display_marks_after then
+            state.selected_index = #display_marks_after
         end
 
         render_buffer()
@@ -239,8 +426,34 @@ end
 local function move_mark_up()
     update_selected_index()
 
-    if quarker.move_mark_up(state.selected_index) then
+    -- Use filtered marks if we have a filter (either active or confirmed)
+    local is_filtered = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+    local display_marks = is_filtered and state.filtered_marks or state.marks
+
+    if state.selected_index < 1 or state.selected_index > #display_marks then
+        return
+    end
+
+    -- Get the actual mark from the display marks
+    local mark = display_marks[state.selected_index]
+
+    -- Find the index in the original marks list
+    local actual_index = nil
+    for i, m in ipairs(state.marks) do
+        if m.path == mark.path then
+            actual_index = i
+            break
+        end
+    end
+
+    if actual_index and quarker.move_mark_up(actual_index) then
         state.marks = quarker.get_marks()
+
+        -- Re-filter if we had a filter
+        if is_filtered then
+            filter_marks()
+        end
+
         state.selected_index = math.max(1, state.selected_index - 1)
         render_buffer()
     end
@@ -250,9 +463,35 @@ end
 local function move_mark_down()
     update_selected_index()
 
-    if quarker.move_mark_down(state.selected_index) then
+    -- Use filtered marks if we have a filter (either active or confirmed)
+    local is_filtered = #state.filtered_marks < #state.marks and #state.filtered_marks > 0
+    local display_marks = is_filtered and state.filtered_marks or state.marks
+
+    if state.selected_index < 1 or state.selected_index > #display_marks then
+        return
+    end
+
+    -- Get the actual mark from the display marks
+    local mark = display_marks[state.selected_index]
+
+    -- Find the index in the original marks list
+    local actual_index = nil
+    for i, m in ipairs(state.marks) do
+        if m.path == mark.path then
+            actual_index = i
+            break
+        end
+    end
+
+    if actual_index and quarker.move_mark_down(actual_index) then
         state.marks = quarker.get_marks()
-        state.selected_index = math.min(#state.marks, state.selected_index + 1)
+
+        -- Re-filter if we had a filter
+        if is_filtered then
+            filter_marks()
+        end
+
+        state.selected_index = math.min(#display_marks, state.selected_index + 1)
         render_buffer()
     end
 end
@@ -282,6 +521,13 @@ local function show_help()
         "  <C-k>        - Move mark up",
         "  <C-j>        - Move mark down",
         "  <C-x>        - Clear all marks",
+        "",
+        "Filter:",
+        "  f            - Enter filter mode",
+        "  (in filter)  - Type to filter marks",
+        "  <CR>         - Confirm filter (keep filtered results)",
+        "  <Esc>        - Cancel filter (show all marks)",
+        "  c            - Clear filter (when filtered)",
         "",
         "Other:",
         "  q/<Esc>      - Close window",
@@ -343,6 +589,10 @@ local function setup_keymaps()
     vim.keymap.set('n', '<C-j>', move_mark_down, opts)
     vim.keymap.set('n', '<C-x>', clear_all_marks, opts)
 
+    -- Filter
+    vim.keymap.set('n', 'f', enter_filter_mode, opts)
+    vim.keymap.set('n', 'c', clear_filter, opts)
+
     -- Help
     vim.keymap.set('n', '?', show_help, opts)
 
@@ -375,6 +625,11 @@ function M.toggle_quarker()
     -- Get marks
     state.marks = quarker.get_marks()
     state.scope = quarker.get_scope()
+
+    -- Initialize filter state
+    state.filter_active = false
+    state.filter_text = ""
+    state.filtered_marks = state.marks
 
     if #state.marks == 0 then
         vim.notify("No marks found in current scope", vim.log.levels.INFO)
