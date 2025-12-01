@@ -52,9 +52,9 @@ local function move_mark_up(prompt_bufnr)
     if selection then
         local index = selection.index
         if quarker.move_mark_up(index) then
-            -- Refresh the picker
+            -- Refresh the picker and select the mark at its new position
             actions.close(prompt_bufnr)
-            M.toggle_quarker()
+            M.toggle_quarker(math.max(1, index - 1))
         end
     end
 end
@@ -64,15 +64,16 @@ local function move_mark_down(prompt_bufnr)
     if selection then
         local index = selection.index
         if quarker.move_mark_down(index) then
-            -- Refresh the picker
+            -- Refresh the picker and select the mark at its new position
             actions.close(prompt_bufnr)
-            M.toggle_quarker()
+            M.toggle_quarker(index + 1)
         end
     end
 end
 
 -- Main telescope picker for quarker
-function M.toggle_quarker()
+-- @param force_selection_index Optional index to force as the default selection
+function M.toggle_quarker(force_selection_index)
     local marks = quarker.get_marks()
     local scope = quarker.get_scope()
 
@@ -82,19 +83,21 @@ function M.toggle_quarker()
     end
 
     -- Get current buffer path for default selection
-    local current_buf_path = vim.api.nvim_buf_get_name(0)
-    local default_selection = 1 -- Default to first entry
-    
-    -- Convert current buffer path to relative path for comparison
+    local default_selection = force_selection_index or 1 -- Use forced index or default to first entry
     local current_relative_path = ""
-    if current_buf_path ~= "" then
-        if current_buf_path:sub(1, #scope) == scope then
-            current_relative_path = current_buf_path:sub(#scope + 1)
-            if current_relative_path:sub(1, 1) == "/" then
-                current_relative_path = current_relative_path:sub(2)
+
+    -- Only look for current buffer match if we're not forcing a selection
+    if not force_selection_index then
+        local current_buf_path = vim.api.nvim_buf_get_name(0)
+        if current_buf_path ~= "" then
+            if current_buf_path:sub(1, #scope) == scope then
+                current_relative_path = current_buf_path:sub(#scope + 1)
+                if current_relative_path:sub(1, 1) == "/" then
+                    current_relative_path = current_relative_path:sub(2)
+                end
+            else
+                current_relative_path = current_buf_path
             end
-        else
-            current_relative_path = current_buf_path
         end
     end
 
@@ -102,13 +105,13 @@ function M.toggle_quarker()
     local entries = {}
     for i, mark in ipairs(marks) do
         -- Check if this mark matches current buffer (compare relative paths)
-        if current_relative_path ~= "" and mark.path == current_relative_path then
+        if not force_selection_index and current_relative_path ~= "" and mark.path == current_relative_path then
             default_selection = i
         end
 
         -- Create full path for telescope previewer
         local full_path = scope .. "/" .. mark.path
-        
+
         table.insert(entries, {
             value = mark,
             display = function(entry)
