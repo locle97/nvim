@@ -44,18 +44,38 @@ function M.create_quarker_sorter(opts)
     local original_scoring = base_sorter.scoring_function
 
     base_sorter.scoring_function = function(self, prompt, line, entry)
+        -- Get the original fuzzy match score first
+        local original_score = original_scoring(self, prompt, line, entry)
+
         -- Check if file is marked
         local mark_index = mark_lookup[line]
 
         if mark_index then
-            -- Negative score ensures marked files sort first
-            -- Lower index = better score (appears earlier)
-            -- Example: mark 1 gets -10009, mark 2 gets -10008, etc.
-            return -(config.score_offset + (mark_count - mark_index))
+            -- For marked files:
+            -- 1. If prompt is empty, show all marked files at top
+            -- 2. If prompt exists, telescope's original scorer already filtered it
+            --    If original_score is reasonable (file matches), boost it to top
+            --    If original_score is very high (file doesn't match), keep it high
+
+            if prompt == "" or prompt == nil then
+                -- No search - show all marked files at top
+                return -(config.score_offset + (mark_count - mark_index))
+            else
+                -- With search - only boost marked files that actually match
+                -- If score is very high, it means telescope filtered it out
+                -- Let's respect that and keep the high score
+                if original_score >= 0 and original_score < 1000 then
+                    -- File matches the search - boost it to top
+                    return -(config.score_offset + (mark_count - mark_index))
+                else
+                    -- File doesn't match - let telescope filter it naturally
+                    return original_score
+                end
+            end
         end
 
         -- Use original scoring for unmarked files
-        return original_scoring(self, prompt, line, entry)
+        return original_score
     end
 
     return base_sorter
@@ -75,24 +95,27 @@ function M.create_quarker_entry_maker(opts)
         if not entry then return nil end
 
         -- Check if marked (check both the line and the entry path)
-        entry.is_marked = mark_lookup[line] ~= nil or mark_lookup[entry.path] ~= nil
+        local mark_index = mark_lookup[line] or mark_lookup[entry.path]
+        entry.is_marked = mark_index ~= nil
+        entry.mark_index = mark_index
 
-        -- Wrap display function to add icon
+        -- Wrap display function to add icon and index
         local original_display = entry.display
         entry.display = function(e)
             local display_str, highlights = original_display(e)
 
-            if e.is_marked then
-                -- Prepend icon
-                display_str = config.mark_icon .. " " .. display_str
+            if e.is_marked and e.mark_index then
+                -- Prepend index number and icon
+                local prefix = string.format("%d. %s ", e.mark_index, config.mark_icon)
+                display_str = prefix .. display_str
 
-                -- Adjust highlight positions for icon offset
+                -- Adjust highlight positions for prefix offset
                 if highlights then
-                    local icon_len = #config.mark_icon + 1
+                    local prefix_len = #prefix
                     for _, hl in ipairs(highlights) do
                         if type(hl[1]) == "table" and #hl[1] >= 2 then
-                            hl[1][1] = hl[1][1] + icon_len  -- start position
-                            hl[1][2] = hl[1][2] + icon_len  -- end position
+                            hl[1][1] = hl[1][1] + prefix_len  -- start position
+                            hl[1][2] = hl[1][2] + prefix_len  -- end position
                         end
                     end
                 end
