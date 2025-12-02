@@ -975,6 +975,15 @@ function M.setup_commands()
     })
 end
 
+-- UI functions
+M.show_marks_ui = function()
+    require("quarker.ui").show_marks()
+end
+
+M.show_scopes_ui = function()
+    require("quarker.ui").show_scopes()
+end
+
 -- Auto-setup commands when module is loaded
 M.setup_commands()
 

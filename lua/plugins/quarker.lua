@@ -15,14 +15,14 @@ return {
         {
             "<leader><leader>",
             function()
-                require("quarker.telescope").toggle_quarker()
+                require("quarker").show_marks_ui()
             end,
             desc = "Quarker: Toggle marks menu"
         },
         {
             "<leader>qs",
             function()
-                require("quarker.telescope").scope_manager()
+                require("quarker").show_scopes_ui()
             end,
             desc = "Quarker: Scope manager"
         },
@@ -102,8 +102,12 @@ return {
         end, { desc = "Unmark current file with Quarker" })
         
         vim.api.nvim_create_user_command("QuarkerToggle", function()
-            require("quarker.telescope").toggle_quarker()
+            require("quarker").show_marks_ui()
         end, { desc = "Toggle Quarker marks menu" })
+
+        vim.api.nvim_create_user_command("QuarkerScopes", function()
+            require("quarker").show_scopes_ui()
+        end, { desc = "Manage Quarker scopes" })
         
         vim.api.nvim_create_user_command("QuarkerClear", function()
             require("quarker").clear_marks()
