@@ -72,8 +72,15 @@ map("n", "<leader>cm", "<cmd>Telescope git_commits<CR>", { desc = "telescope git
 map("n", "<leader>gs", "<cmd>Telescope git_status<CR>", { desc = "telescope git status" })
 map("n", "<leader>pt", "<cmd>Telescope terms<CR>", { desc = "telescope pick hidden term" })
 map("n", "<leader>th", "<cmd>Telescope themes<CR>", { desc = "telescope nvchad themes" })
-map("n", "<C-p>", "<cmd> Telescope find_files <CR>", { desc = "telescope find files" })
-map("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "telescope find files" })
+-- Quarker-enhanced find_files
+map("n", "<C-p>", function()
+    require('quarker.telescope_integration').find_files()
+end, { desc = "telescope find files (Quarker enhanced)" })
+map("n", "<leader>ff", function()
+    require('quarker.telescope_integration').find_files()
+end, { desc = "telescope find files (Quarker enhanced)" })
+-- Original find_files as fallback
+map("n", "<leader>fF", "<cmd>Telescope find_files<cr>", { desc = "telescope find files (original)" })
 map(
     "n",
     "<leader>fa",
