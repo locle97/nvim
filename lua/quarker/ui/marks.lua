@@ -18,14 +18,19 @@ local function get_cursor_position(marks, scope)
         return 1
     end
 
+    -- Normalize scope path (remove trailing slash)
+    local normalized_scope = scope:gsub("/$", "")
+
     -- Convert current buffer to relative path
     local current_relative_path = ""
-    if current_buf_path:sub(1, #scope) == scope then
-        current_relative_path = current_buf_path:sub(#scope + 1)
+    if current_buf_path:sub(1, #normalized_scope) == normalized_scope then
+        current_relative_path = current_buf_path:sub(#normalized_scope + 1)
+        -- Remove leading slash
         if current_relative_path:sub(1, 1) == "/" then
             current_relative_path = current_relative_path:sub(2)
         end
     else
+        -- If not in scope, use the full path
         current_relative_path = current_buf_path
     end
 
@@ -76,7 +81,10 @@ local function render_marks(bufnr, marks)
         })
     end
 
-    float.render_lines(bufnr, lines, highlights)
+    -- Create help bar with keybindings
+    local help_bar = "<CR>:select  dd:delete  <C-k/j>:move  <C-x>:clear  1-9:jump  q:quit"
+
+    float.render_lines(bufnr, lines, highlights, { help_bar = help_bar })
 end
 
 -- Main function to show marks in floating buffer

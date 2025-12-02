@@ -53,7 +53,10 @@ local function render_scopes(bufnr, scopes, active_scope, base_scope)
         end
     end
 
-    float.render_lines(bufnr, lines, highlights)
+    -- Create help bar with keybindings
+    local help_bar = "<CR>:switch  n:new  r:rename  dd:delete  1-9:jump  q:quit"
+
+    float.render_lines(bufnr, lines, highlights, { help_bar = help_bar })
     return active_line
 end
 
