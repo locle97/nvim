@@ -184,13 +184,6 @@ map("n", "<c-k>", "<cmd>TmuxNavigateUp<cr>")
 map("n", "<c-l>", "<cmd>TmuxNavigateRight<cr>")
 map("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>")
 
--- Copilot Chat
-map("n", "<leader>cc", function()
-    require("CopilotChat").toggle()
-end, { desc = "Open Copilot Chat" })
-map("x", "<leader>ce", ":CopilotChatExplain<CR>",
-    { desc = "Explain the whole selected block" })
-
 -- remapping ; work as :
 map("n", ";", ":", { noremap = true, silent = false })
 
