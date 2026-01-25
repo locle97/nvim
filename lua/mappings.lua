@@ -147,17 +147,6 @@ map("v", "<leader>fm", function() vim.lsp.buf.format { async = true } end, { des
 
 -- Git
 map("n", "<leader>gl", ":LazyGit<CR>", { desc = "Open LazyGit" })
-map("n", "<leader>gd", function()
-    local lib = require("diffview.lib")
-    local view = lib.get_current_view()
-    if view then
-        -- Current tabpage is a Diffview; close it
-        vim.cmd.DiffviewClose()
-    else
-        -- No open Diffview exists: open a new one
-        vim.cmd.DiffviewOpen()
-    end
-end, { desc = "Toggle Git differents" })
 -- Navigation
 local gitsigns = require('gitsigns')
 
@@ -177,15 +166,16 @@ map('n', '[c', function()
   end
 end)
 
-map('n', '<leader>hs', gitsigns.stage_hunk)
-map('n', '<leader>hr', gitsigns.reset_hunk)
-map('v', '<leader>hs', function()
+map('n', '<leader>gs', gitsigns.stage_hunk)
+map('n', '<leader>gr', gitsigns.reset_hunk)
+map('v', '<leader>gs', function()
   gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
 
-map('v', '<leader>hr', function()
+map('v', '<leader>gr', function()
   gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
+map("n", "<leader>gd", gitsigns.preview_hunk_inline, { desc = "Toggle Git differents" })
 
 -- Tmux
 map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
