@@ -1,6 +1,6 @@
 dofile(vim.g.base46_cache .. "nvimtree")
-local HEIGHT_RATIO = 0.9 -- You can change this
-local WIDTH_RATIO = 0.9  -- You can change this too
+local HEIGHT_RATIO = 1 -- You can change this
+local WIDTH_RATIO = 1  -- You can change this too
 
 return {
     filters = { dotfiles = false },
@@ -38,7 +38,7 @@ return {
                 local center_y = ((vim.opt.lines:get() - window_h) / 2)
                     - vim.opt.cmdheight:get()
                 return {
-                    border = "rounded",
+                    border = "none",
                     relative = "editor",
                     row = center_y,
                     col = center_x,
