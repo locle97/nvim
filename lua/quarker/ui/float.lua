@@ -4,6 +4,7 @@ local M = {}
 M.state = {
     marks_win = nil,
     scopes_win = nil,
+    context_win = nil,
 }
 
 -- Get window configuration for centered floating window
@@ -58,6 +59,9 @@ function M.create_float_win(opts)
     elseif win_type == "scopes" and M.state.scopes_win then
         M.close_float_win(M.state.scopes_win)
         M.state.scopes_win = nil
+    elseif win_type == "context" and M.state.context_win then
+        M.close_float_win(M.state.context_win)
+        M.state.context_win = nil
     end
 
     -- Create buffer
@@ -84,6 +88,8 @@ function M.create_float_win(opts)
         M.state.marks_win = winid
     elseif win_type == "scopes" then
         M.state.scopes_win = winid
+    elseif win_type == "context" then
+        M.state.context_win = winid
     end
 
     -- Setup autocmd for cleanup
@@ -95,6 +101,8 @@ function M.create_float_win(opts)
                 M.state.marks_win = nil
             elseif win_type == "scopes" then
                 M.state.scopes_win = nil
+            elseif win_type == "context" then
+                M.state.context_win = nil
             end
         end,
     })

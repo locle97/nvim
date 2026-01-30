@@ -17,7 +17,9 @@ local cache = {
     marks_cache = {},
     marks_timestamp = 0,
     scope_metadata_cache = {},
-    scope_metadata_timestamp = 0
+    scope_metadata_timestamp = 0,
+    context_cache = {},
+    context_timestamp = 0
 }
 
 -- Default settings
@@ -708,6 +710,10 @@ function M.delete_scope(scope_name)
         os.remove(marks_file)
     end
 
+    -- Delete context file
+    local context = require("quarker.context")
+    context._delete_context(base_scope, scope_name)
+
     -- Clear marks from memory
     local full_scope = base_scope .. ":" .. scope_name
     marks[full_scope] = nil
@@ -783,6 +789,10 @@ function M.rename_scope(old_name, new_name)
     if vim.fn.filereadable(old_marks_file) == 1 then
         os.rename(old_marks_file, new_marks_file)
     end
+
+    -- Rename context file
+    local context = require("quarker.context")
+    context._rename_context(base_scope, old_name, new_name)
 
     -- Update marks in memory
     local old_full_scope = base_scope .. ":" .. old_name
@@ -917,6 +927,20 @@ function M.setup_commands()
                 vim.notify("Available actions: create, list, switch, delete, rename, current", vim.log.levels.INFO)
             end
 
+        -- Context commands
+        elseif subcommand == "context" then
+            local context_action = args[2]
+
+            if not context_action then
+                -- Show context UI
+                require("quarker.ui").show_context()
+            elseif context_action == "export" then
+                require("quarker.context").export()
+            else
+                vim.notify("Unknown context action: " .. context_action, vim.log.levels.ERROR)
+                vim.notify("Available: export (or no args to edit)", vim.log.levels.INFO)
+            end
+
         -- Telescope pickers
         elseif subcommand == "scopes" then
             require("quarker.telescope").scope_manager()
@@ -947,7 +971,7 @@ function M.setup_commands()
 
         else
             vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
-            vim.notify("Available commands: scopes, marks, scope, mark, unmark, toggle, clear, list, navigate", vim.log.levels.INFO)
+            vim.notify("Available commands: scopes, marks, scope, context, mark, unmark, toggle, clear, list, navigate", vim.log.levels.INFO)
         end
     end, {
         nargs = "*",
@@ -957,7 +981,7 @@ function M.setup_commands()
 
             -- Complete first argument (subcommands)
             if num_args == 2 then
-                local subcommands = { "scopes", "marks", "scope", "mark", "unmark", "toggle", "clear", "list", "navigate" }
+                local subcommands = { "scopes", "marks", "scope", "context", "mark", "unmark", "toggle", "clear", "list", "navigate" }
                 return vim.tbl_filter(function(cmd)
                     return cmd:find(ArgLead, 1, true) == 1
                 end, subcommands)
@@ -969,6 +993,14 @@ function M.setup_commands()
                 return vim.tbl_filter(function(action)
                     return action:find(ArgLead, 1, true) == 1
                 end, scope_actions)
+            end
+
+            -- Complete context subcommands
+            if num_args == 3 and args[2] == "context" then
+                local context_actions = { "export" }
+                return vim.tbl_filter(function(action)
+                    return action:find(ArgLead, 1, true) == 1
+                end, context_actions)
             end
 
             -- Complete scope names for switch, delete, rename
@@ -993,6 +1025,13 @@ end
 M.show_scopes_ui = function()
     require("quarker.ui").show_scopes()
 end
+
+M.show_context_ui = function()
+    require("quarker.ui").show_context()
+end
+
+-- Context module re-exports for convenience
+M.context = require("quarker.context")
 
 -- Auto-setup commands when module is loaded
 M.setup_commands()

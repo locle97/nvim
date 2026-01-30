@@ -13,7 +13,7 @@ return {
             desc = "Quarker: Toggle mark file"
         },
         {
-            "<leader>qq",
+            "<leader><leader>",
             function()
                 require("quarker").show_marks_ui()
             end,
@@ -25,6 +25,13 @@ return {
                 require("quarker").show_scopes_ui()
             end,
             desc = "Quarker: Scope manager"
+        },
+        {
+            "<leader>qc",
+            function()
+                require("quarker").show_context_ui()
+            end,
+            desc = "Quarker: Context manager"
         },
         -- Quick navigation keys
         {
