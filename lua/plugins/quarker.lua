@@ -13,7 +13,7 @@ return {
             desc = "Quarker: Toggle mark file"
         },
         {
-            "<leader><leader>",
+            "<leader>qq",
             function()
                 require("quarker").show_marks_ui()
             end,

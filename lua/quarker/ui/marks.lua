@@ -205,12 +205,45 @@ function M.show_marks(force_cursor_line)
         float.close_float_win(winid)
     end
 
+    -- Quick jump to mark by number
+    local function make_jump_handler(index)
+        return function()
+            if index <= #marks then
+                local mark = marks[index]
+                -- Sync before navigating
+                sync_buffer_to_marks(bufnr, original_marks, quarker)
+                float.close_float_win(winid)
+
+                -- Find the mark index in the updated marks
+                local updated_marks = quarker.get_marks()
+                for i, m in ipairs(updated_marks) do
+                    if m.path == mark.path then
+                        quarker.navigate(i)
+                        return
+                    end
+                end
+            else
+                vim.notify(string.format("Mark %d does not exist", index), vim.log.levels.WARN)
+            end
+        end
+    end
+
     -- Minimal keymaps - let the buffer behave normally otherwise
     local keymaps = {
         { mode = "n", key = "<CR>", callback = navigate, desc = "Navigate to mark" },
         { mode = "n", key = "q", callback = close_window, desc = "Close and save" },
         { mode = "n", key = "<Esc>", callback = close_window, desc = "Close and save" },
     }
+
+    -- Add number keys 1-9 for quick jump
+    for i = 1, 9 do
+        table.insert(keymaps, {
+            mode = "n",
+            key = tostring(i),
+            callback = make_jump_handler(i),
+            desc = string.format("Jump to mark %d", i),
+        })
+    end
 
     float.set_float_keymaps(bufnr, keymaps)
 end
