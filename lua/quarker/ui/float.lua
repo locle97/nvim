@@ -114,30 +114,12 @@ end
 -- @param bufnr number Buffer number
 -- @param lines table Array of lines to render
 -- @param highlights table Array of highlight specs {line, col_start, col_end, hl_group}
--- @param opts table Optional settings: { help_bar = string or table }
-function M.render_lines(bufnr, lines, highlights, opts)
-    opts = opts or {}
-
-    -- Make buffer modifiable temporarily
+function M.render_lines(bufnr, lines, highlights)
+    -- Make buffer modifiable
     vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
 
-    -- Add help bar if provided
-    local final_lines = vim.deepcopy(lines)
-    local help_bar_offset = 0
-
-    if opts.help_bar then
-        local help_lines = type(opts.help_bar) == "string" and { opts.help_bar } or opts.help_bar
-        help_bar_offset = #help_lines + 1 -- +1 for separator
-
-        -- Add separator and help bar lines
-        table.insert(final_lines, "")
-        for _, help_line in ipairs(help_lines) do
-            table.insert(final_lines, help_line)
-        end
-    end
-
     -- Set lines
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, final_lines)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
 
     -- Apply highlights
     local ns_id = vim.api.nvim_create_namespace("quarker_float")
@@ -155,25 +137,6 @@ function M.render_lines(bufnr, lines, highlights, opts)
             )
         end
     end
-
-    -- Highlight help bar section if present
-    if opts.help_bar then
-        local help_start_line = #lines + 1 -- separator line (0-indexed)
-        -- Highlight help bar lines with a distinct color
-        for i = 0, help_bar_offset - 1 do
-            vim.api.nvim_buf_add_highlight(
-                bufnr,
-                ns_id,
-                "Comment",
-                help_start_line + i,
-                0,
-                -1
-            )
-        end
-    end
-
-    -- Make buffer read-only
-    vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
 end
 
 -- Set keymaps for buffer

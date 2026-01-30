@@ -390,6 +390,16 @@ function M.get_marks()
     return get_marks()
 end
 
+-- Set marks for current scope (used by UI to sync buffer changes)
+function M.set_marks(new_marks)
+    local base_scope = get_base_scope()
+    local scope_name = get_active_scope_name()
+    local full_scope = base_scope .. ":" .. scope_name
+
+    marks[full_scope] = new_marks
+    save_marks(base_scope, scope_name)
+end
+
 -- Get current base scope (repository path)
 function M.get_scope()
     return get_base_scope()

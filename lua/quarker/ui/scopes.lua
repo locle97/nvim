@@ -23,6 +23,14 @@ local function get_marks_count(base_scope, scope_name)
     return 0
 end
 
+-- Parse a scope line to extract the scope name
+-- Format: "scope_name (N marks) [active]?" or just "scope_name"
+local function parse_scope_line(line)
+    -- Match scope name (everything before the first space or parenthesis)
+    local scope_name = line:match("^([^%s%(]+)")
+    return scope_name
+end
+
 -- Render scopes to buffer
 -- @param bufnr number Buffer number
 -- @param scopes table Array of scope names
@@ -53,10 +61,7 @@ local function render_scopes(bufnr, scopes, active_scope, base_scope)
         end
     end
 
-    -- Create help bar with keybindings
-    local help_bar = "<CR>:switch  n:new  r:rename  dd:delete  1-9:jump  q:quit"
-
-    float.render_lines(bufnr, lines, highlights, { help_bar = help_bar })
+    float.render_lines(bufnr, lines, highlights)
     return active_line
 end
 
@@ -87,12 +92,29 @@ function M.show_scopes()
     -- Set cursor to active scope
     vim.api.nvim_win_set_cursor(winid, { active_line, 0 })
 
-    -- Setup keymaps
+    -- Store original scopes for reference
+    local original_scopes = vim.deepcopy(scopes)
+
+    -- Switch to scope under cursor
     local function switch_scope()
         local line = vim.api.nvim_win_get_cursor(winid)[1]
-        local scope_name = scopes[line]
-        float.close_float_win(winid)
-        quarker.switch_scope(scope_name)
+        local buf_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local current_line = buf_lines[line]
+
+        if current_line and current_line ~= "" then
+            local scope_name = parse_scope_line(current_line)
+            if scope_name then
+                -- Check if this scope exists
+                for _, s in ipairs(original_scopes) do
+                    if s == scope_name then
+                        float.close_float_win(winid)
+                        quarker.switch_scope(scope_name)
+                        return
+                    end
+                end
+            end
+        end
+        vim.notify("Invalid scope line", vim.log.levels.WARN)
     end
 
     local function close_window()
@@ -100,12 +122,13 @@ function M.show_scopes()
     end
 
     local function create_scope()
-        float.close_float_win(winid)
         vim.ui.input({ prompt = "New scope name: " }, function(name)
             if name and name ~= "" then
                 if quarker.create_scope(name) then
-                    -- Re-open to show new scope
-                    M.show_scopes()
+                    -- Refresh the buffer
+                    local new_scopes, new_active = quarker.list_scopes()
+                    original_scopes = vim.deepcopy(new_scopes)
+                    render_scopes(bufnr, new_scopes, new_active, base_scope)
                 end
             end
         end)
@@ -113,19 +136,30 @@ function M.show_scopes()
 
     local function rename_scope()
         local line = vim.api.nvim_win_get_cursor(winid)[1]
-        local old_name = scopes[line]
+        local buf_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local current_line = buf_lines[line]
+
+        if not current_line or current_line == "" then
+            return
+        end
+
+        local old_name = parse_scope_line(current_line)
+        if not old_name then
+            return
+        end
 
         if old_name == "default" then
             vim.notify("Cannot rename the default scope", vim.log.levels.ERROR)
             return
         end
 
-        float.close_float_win(winid)
         vim.ui.input({ prompt = string.format("Rename '%s' to: ", old_name) }, function(new_name)
             if new_name and new_name ~= "" then
                 if quarker.rename_scope(old_name, new_name) then
-                    -- Re-open to show renamed scope
-                    M.show_scopes()
+                    -- Refresh the buffer
+                    local new_scopes, new_active = quarker.list_scopes()
+                    original_scopes = vim.deepcopy(new_scopes)
+                    render_scopes(bufnr, new_scopes, new_active, base_scope)
                 end
             end
         end)
@@ -133,7 +167,17 @@ function M.show_scopes()
 
     local function delete_scope()
         local line = vim.api.nvim_win_get_cursor(winid)[1]
-        local scope_name = scopes[line]
+        local buf_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local current_line = buf_lines[line]
+
+        if not current_line or current_line == "" then
+            return
+        end
+
+        local scope_name = parse_scope_line(current_line)
+        if not scope_name then
+            return
+        end
 
         if scope_name == "default" then
             vim.notify("Cannot delete the default scope", vim.log.levels.ERROR)
@@ -147,42 +191,28 @@ function M.show_scopes()
         )
 
         if choice == 1 then
-            float.close_float_win(winid)
             quarker.delete_scope(scope_name)
+            -- Refresh the buffer
+            local new_scopes, new_active = quarker.list_scopes()
+            original_scopes = vim.deepcopy(new_scopes)
+            render_scopes(bufnr, new_scopes, new_active, base_scope)
+            -- Adjust cursor if needed
+            local total_lines = vim.api.nvim_buf_line_count(bufnr)
+            local cursor_line = math.min(line, total_lines)
+            cursor_line = math.max(cursor_line, 1)
+            vim.api.nvim_win_set_cursor(winid, { cursor_line, 0 })
         end
     end
 
-    -- Quick switch functions for number keys
-    local function make_switch_handler(index)
-        return function()
-            if index <= #scopes then
-                local scope_name = scopes[index]
-                float.close_float_win(winid)
-                quarker.switch_scope(scope_name)
-            else
-                vim.notify(string.format("Scope %d does not exist", index), vim.log.levels.WARN)
-            end
-        end
-    end
-
+    -- Minimal keymaps
     local keymaps = {
         { mode = "n", key = "<CR>", callback = switch_scope, desc = "Switch to scope" },
         { mode = "n", key = "q", callback = close_window, desc = "Close window" },
         { mode = "n", key = "<Esc>", callback = close_window, desc = "Close window" },
-        { mode = "n", key = "n", callback = create_scope, desc = "Create new scope" },
+        { mode = "n", key = "a", callback = create_scope, desc = "Add new scope" },
         { mode = "n", key = "r", callback = rename_scope, desc = "Rename scope" },
-        { mode = "n", key = "dd", callback = delete_scope, desc = "Delete scope" },
+        { mode = "n", key = "x", callback = delete_scope, desc = "Delete scope" },
     }
-
-    -- Add number keys 1-9 for quick switch
-    for i = 1, 9 do
-        table.insert(keymaps, {
-            mode = "n",
-            key = tostring(i),
-            callback = make_switch_handler(i),
-            desc = string.format("Switch to scope %d", i)
-        })
-    end
 
     float.set_float_keymaps(bufnr, keymaps)
 end

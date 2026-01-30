@@ -44,8 +44,16 @@ local function get_cursor_position(marks, scope)
     return 1
 end
 
--- Render marks to buffer
-local function render_marks(bufnr, marks)
+-- Parse a mark line to extract the path
+-- Format: "[N] icon filename path"
+local function parse_mark_line(line)
+    -- Match the pattern: [number] followed by icon, filename, and path
+    local path = line:match("^%[%d+%]%s+[^%s]+%s+[^%s]+%s+(.+)$")
+    return path
+end
+
+-- Generate lines from marks
+local function generate_mark_lines(marks)
     local lines = {}
     local highlights = {}
 
@@ -81,10 +89,39 @@ local function render_marks(bufnr, marks)
         })
     end
 
-    -- Create help bar with keybindings
-    local help_bar = "<CR>:select  dd:delete  <C-k/j>:move  <C-x>:clear  1-9:jump  q:quit"
+    return lines, highlights
+end
 
-    float.render_lines(bufnr, lines, highlights, { help_bar = help_bar })
+-- Render marks to buffer
+local function render_marks(bufnr, marks)
+    local lines, highlights = generate_mark_lines(marks)
+    float.render_lines(bufnr, lines, highlights)
+end
+
+-- Sync buffer content back to marks
+local function sync_buffer_to_marks(bufnr, original_marks, quarker)
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local new_marks = {}
+
+    -- Build a lookup table from original marks by path
+    local path_to_mark = {}
+    for _, mark in ipairs(original_marks) do
+        path_to_mark[mark.path] = mark
+    end
+
+    -- Parse each line and rebuild marks list
+    for _, line in ipairs(lines) do
+        -- Skip empty lines
+        if line ~= "" then
+            local path = parse_mark_line(line)
+            if path and path_to_mark[path] then
+                table.insert(new_marks, path_to_mark[path])
+            end
+        end
+    end
+
+    -- Update marks in quarker
+    quarker.set_marks(new_marks)
 end
 
 -- Main function to show marks in floating buffer
@@ -115,98 +152,65 @@ function M.show_marks(force_cursor_line)
 
     -- Set cursor position
     local cursor_line = force_cursor_line or get_cursor_position(marks, scope_path)
+    local total_lines = vim.api.nvim_buf_line_count(bufnr)
+    cursor_line = math.min(cursor_line, total_lines)
+    cursor_line = math.max(cursor_line, 1)
     vim.api.nvim_win_set_cursor(winid, { cursor_line, 0 })
 
-    -- Setup keymaps
+    -- Store original marks for syncing
+    local original_marks = vim.deepcopy(marks)
+
+    -- Setup autocmd to sync changes when leaving buffer
+    local augroup = vim.api.nvim_create_augroup("QuarkerMarksSync", { clear = true })
+
+    vim.api.nvim_create_autocmd({ "BufLeave", "BufWinLeave" }, {
+        group = augroup,
+        buffer = bufnr,
+        once = true,
+        callback = function()
+            sync_buffer_to_marks(bufnr, original_marks, quarker)
+            vim.api.nvim_del_augroup_by_id(augroup)
+        end,
+    })
+
+    -- Navigate to mark under cursor
     local function navigate()
         local line = vim.api.nvim_win_get_cursor(winid)[1]
-        float.close_float_win(winid)
-        quarker.navigate(line)
+        local buf_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local current_line = buf_lines[line]
+
+        if current_line and current_line ~= "" then
+            local path = parse_mark_line(current_line)
+            if path then
+                -- Sync first so marks are updated
+                sync_buffer_to_marks(bufnr, original_marks, quarker)
+                float.close_float_win(winid)
+
+                -- Find the mark index in the updated marks
+                local updated_marks = quarker.get_marks()
+                for i, mark in ipairs(updated_marks) do
+                    if mark.path == path then
+                        quarker.navigate(i)
+                        return
+                    end
+                end
+            end
+        end
+        vim.notify("Invalid mark line", vim.log.levels.WARN)
     end
 
     local function close_window()
+        -- Sync changes before closing
+        sync_buffer_to_marks(bufnr, original_marks, quarker)
         float.close_float_win(winid)
     end
 
-    local function delete_mark()
-        local line = vim.api.nvim_win_get_cursor(winid)[1]
-        if quarker.remove_mark(line) then
-            -- Check if there are any marks left
-            local remaining_marks = quarker.get_marks()
-            if #remaining_marks == 0 then
-                -- Close window if no marks left
-                float.close_float_win(winid)
-            else
-                -- Refresh the marks buffer, keeping cursor at same position or previous
-                local new_cursor = math.min(line, #remaining_marks)
-                M.show_marks(new_cursor)
-            end
-        end
-    end
-
-    local function move_mark_up()
-        local line = vim.api.nvim_win_get_cursor(winid)[1]
-        if line == 1 then
-            vim.notify("Already at the top", vim.log.levels.INFO)
-            return
-        end
-        if quarker.move_mark_up(line) then
-            -- Refresh and position cursor at new location
-            M.show_marks(line - 1)
-        end
-    end
-
-    local function move_mark_down()
-        local line = vim.api.nvim_win_get_cursor(winid)[1]
-        if line == #marks then
-            vim.notify("Already at the bottom", vim.log.levels.INFO)
-            return
-        end
-        if quarker.move_mark_down(line) then
-            -- Refresh and position cursor at new location
-            M.show_marks(line + 1)
-        end
-    end
-
-    local function clear_all_marks()
-        local choice = vim.fn.confirm("Clear all marks for current scope?", "&Yes\n&No", 2)
-        if choice == 1 then
-            quarker.clear_marks()
-            float.close_float_win(winid)
-        end
-    end
-
-    -- Quick jump functions for number keys
-    local function make_jump_handler(index)
-        return function()
-            if index <= #marks then
-                float.close_float_win(winid)
-                quarker.navigate(index)
-            else
-                vim.notify(string.format("Mark %d does not exist", index), vim.log.levels.WARN)
-            end
-        end
-    end
-
+    -- Minimal keymaps - let the buffer behave normally otherwise
     local keymaps = {
         { mode = "n", key = "<CR>", callback = navigate, desc = "Navigate to mark" },
-        { mode = "n", key = "q", callback = close_window, desc = "Close window" },
-        { mode = "n", key = "<Esc>", callback = close_window, desc = "Close window" },
-        { mode = "n", key = "dd", callback = delete_mark, desc = "Delete mark" },
-        { mode = "n", key = "<C-k>", callback = move_mark_up, desc = "Move mark up" },
-        { mode = "n", key = "<C-j>", callback = move_mark_down, desc = "Move mark down" },
-        { mode = "n", key = "<C-x>", callback = clear_all_marks, desc = "Clear all marks" },
+        { mode = "n", key = "q", callback = close_window, desc = "Close and save" },
+        { mode = "n", key = "<Esc>", callback = close_window, desc = "Close and save" },
     }
-
-    -- Add number keys 1-9 for quick jump
-    for i = 1, 9 do
-        table.insert(keymaps, {
-            mode = "n",
-            key = tostring(i),
-            callback = make_jump_handler(i),
-            desc = string.format("Jump to mark %d", i)
-        })
-    end
 
     float.set_float_keymaps(bufnr, keymaps)
 end
