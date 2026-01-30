@@ -11,8 +11,9 @@ M.state = {
 -- @param width_ratio number Width as ratio of screen (0.0-1.0)
 -- @param height_ratio number Height as ratio of screen (0.0-1.0)
 -- @param title string Optional window title
+-- @param footer string Optional window footer
 -- @return table Window configuration for nvim_open_win
-function M.get_window_config(width_ratio, height_ratio, title)
+function M.get_window_config(width_ratio, height_ratio, title, footer)
     local screen_w = vim.opt.columns:get()
     local screen_h = vim.opt.lines:get() - vim.opt.cmdheight:get()
 
@@ -39,18 +40,24 @@ function M.get_window_config(width_ratio, height_ratio, title)
         config.title_pos = "center"
     end
 
+    if footer then
+        config.footer = footer
+        config.footer_pos = "center"
+    end
+
     return config
 end
 
 -- Create a floating window with buffer
--- @param opts table Options: width_ratio, height_ratio, title, win_type
+-- @param opts table Options: width_ratio, height_ratio, title, footer, win_type
 -- @return number, number bufnr, winid
 function M.create_float_win(opts)
     opts = opts or {}
     local width_ratio = opts.width_ratio or 0.6
     local height_ratio = opts.height_ratio or 0.7
     local title = opts.title or ""
-    local win_type = opts.win_type or "marks" -- "marks" or "scopes"
+    local footer = opts.footer
+    local win_type = opts.win_type or "marks" -- "marks" or "scopes" or "context"
 
     -- Close existing window of the same type if open
     if win_type == "marks" and M.state.marks_win then
@@ -74,7 +81,7 @@ function M.create_float_win(opts)
     vim.api.nvim_buf_set_option(bufnr, "filetype", "quarker")
 
     -- Get window config and open window
-    local win_config = M.get_window_config(width_ratio, height_ratio, title)
+    local win_config = M.get_window_config(width_ratio, height_ratio, title, footer)
     local winid = vim.api.nvim_open_win(bufnr, true, win_config)
 
     -- Set window options
