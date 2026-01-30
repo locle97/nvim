@@ -10,6 +10,8 @@ local ai_state = {
     original_content = nil,
     spinner_idx = 1,
     timer = nil,
+    message = nil,
+    preview = nil,
 }
 
 local SPINNER_FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
@@ -18,7 +20,7 @@ local SPINNER_FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧",
 -- Loading Indicator
 -- ============================================================================
 
-local function show_loading(bufnr, message)
+local function show_loading(bufnr, message, preview)
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
     end
@@ -30,9 +32,15 @@ local function show_loading(bufnr, message)
         "",
         string.format("  %s %s", spinner, message or "AI is working..."),
         "",
-        "  Please wait...",
-        "",
     }
+
+    if preview and preview ~= "" then
+        table.insert(lines, "  " .. preview)
+        table.insert(lines, "")
+    end
+
+    table.insert(lines, "  Please wait...")
+    table.insert(lines, "")
 
     vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
@@ -42,6 +50,8 @@ end
 local function start_loading_animation(bufnr, message)
     ai_state.running = true
     ai_state.spinner_idx = 1
+    ai_state.message = message
+    ai_state.preview = nil
 
     -- Stop existing timer if any
     if ai_state.timer then
@@ -51,7 +61,7 @@ local function start_loading_animation(bufnr, message)
     -- Start spinner animation
     ai_state.timer = vim.fn.timer_start(100, function()
         if ai_state.running and vim.api.nvim_buf_is_valid(bufnr) then
-            show_loading(bufnr, message)
+            show_loading(bufnr, ai_state.message, ai_state.preview)
         else
             if ai_state.timer then
                 vim.fn.timer_stop(ai_state.timer)
@@ -60,7 +70,7 @@ local function start_loading_animation(bufnr, message)
         end
     end, { ["repeat"] = -1 })
 
-    show_loading(bufnr, message)
+    show_loading(bufnr, message, nil)
 end
 
 local function stop_loading_animation()
@@ -114,17 +124,13 @@ local function run_ai_with_loading(bufnr, winid, backend, prompt, message, callb
                 for _, line in ipairs(data) do
                     if line ~= "" then
                         table.insert(output_lines, line)
-                        -- Update loading message with last line
-                        if ai_state.running and vim.api.nvim_buf_is_valid(bufnr) then
+                        -- Update preview with last line
+                        if ai_state.running then
                             local preview = line:sub(1, 60)
                             if #line > 60 then
                                 preview = preview .. "..."
                             end
-                            vim.schedule(function()
-                                if ai_state.running then
-                                    show_loading(bufnr, message .. "\n  " .. preview)
-                                end
-                            end)
+                            ai_state.preview = preview
                         end
                     end
                 end
