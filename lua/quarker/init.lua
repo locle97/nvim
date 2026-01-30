@@ -941,6 +941,34 @@ function M.setup_commands()
                 vim.notify("Available: export (or no args to edit)", vim.log.levels.INFO)
             end
 
+        -- AI commands
+        elseif subcommand == "ai" then
+            local ai_action = args[2]
+            local ai_module = require("quarker.ai")
+
+            if not ai_action then
+                ai_module.status()
+            elseif ai_action == "generate" then
+                -- Collect remaining args as seed prompt
+                local seed = table.concat(vim.list_slice(args, 3), " ")
+                ai_module.generate_context(seed ~= "" and seed or nil)
+            elseif ai_action == "feature" then
+                local name = args[3]
+                if not name then
+                    vim.notify("Usage: :Quarker ai feature <name>", vim.log.levels.ERROR)
+                else
+                    ai_module.generate_feature_note(name)
+                end
+            elseif ai_action == "refresh" then
+                local since = args[3] or "HEAD~1"
+                ai_module.refresh_context(since)
+            elseif ai_action == "status" then
+                ai_module.status()
+            else
+                vim.notify("Unknown ai action: " .. ai_action, vim.log.levels.ERROR)
+                vim.notify("Available: generate, feature, refresh, status", vim.log.levels.INFO)
+            end
+
         -- Telescope pickers
         elseif subcommand == "scopes" then
             require("quarker.telescope").scope_manager()
@@ -971,7 +999,7 @@ function M.setup_commands()
 
         else
             vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
-            vim.notify("Available commands: scopes, marks, scope, context, mark, unmark, toggle, clear, list, navigate", vim.log.levels.INFO)
+            vim.notify("Available commands: scopes, marks, scope, context, ai, mark, unmark, toggle, clear, list, navigate", vim.log.levels.INFO)
         end
     end, {
         nargs = "*",
@@ -981,7 +1009,7 @@ function M.setup_commands()
 
             -- Complete first argument (subcommands)
             if num_args == 2 then
-                local subcommands = { "scopes", "marks", "scope", "context", "mark", "unmark", "toggle", "clear", "list", "navigate" }
+                local subcommands = { "scopes", "marks", "scope", "context", "ai", "mark", "unmark", "toggle", "clear", "list", "navigate" }
                 return vim.tbl_filter(function(cmd)
                     return cmd:find(ArgLead, 1, true) == 1
                 end, subcommands)
@@ -1001,6 +1029,14 @@ function M.setup_commands()
                 return vim.tbl_filter(function(action)
                     return action:find(ArgLead, 1, true) == 1
                 end, context_actions)
+            end
+
+            -- Complete ai subcommands
+            if num_args == 3 and args[2] == "ai" then
+                local ai_actions = { "generate", "feature", "refresh", "status" }
+                return vim.tbl_filter(function(action)
+                    return action:find(ArgLead, 1, true) == 1
+                end, ai_actions)
             end
 
             -- Complete scope names for switch, delete, rename
@@ -1030,8 +1066,9 @@ M.show_context_ui = function()
     require("quarker.ui").show_context()
 end
 
--- Context module re-exports for convenience
+-- Module re-exports for convenience
 M.context = require("quarker.context")
+M.ai = require("quarker.ai")
 
 -- Auto-setup commands when module is loaded
 M.setup_commands()
