@@ -177,6 +177,10 @@ map('v', '<leader>gr', function()
 end)
 map("n", "<leader>gd", gitsigns.preview_hunk_inline, { desc = "Toggle Git differents" })
 
+-- QuackReview
+map("n", "<leader>qr", "<cmd>QuackReview start<CR>", { desc = "QuackReview: start (unstaged)" })
+map("n", "<leader>qR", "<cmd>QuackReview start head<CR>", { desc = "QuackReview: start (all uncommitted)" })
+
 -- Tmux
 map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
 map("n", "<c-j>", "<cmd>TmuxNavigateDown<cr>")

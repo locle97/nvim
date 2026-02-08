@@ -30,10 +30,17 @@ M.ui = {
         -- default/round/block/arrow separators work only for default statusline theme
         -- round and block will work for minimal theme only
         separator_style = "default",
-        order = { "mode", "file", "quarker", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
+        order = { "mode", "file", "quarker", "quack_review", "%=", "lsp_msg", "%=", "diagnostics", "lsp", "cwd", "cursor" },
         modules = {
             quarker = function()
                 return "%#Label#" .. require("quarker").statusline()
+            end,
+            quack_review = function()
+                local ok, qr = pcall(require, "quack-review")
+                if ok then
+                    return "%#DiagnosticInfo#" .. qr.statusline()
+                end
+                return ""
             end,
         },
     },
