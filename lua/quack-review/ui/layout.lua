@@ -100,9 +100,6 @@ function M.open()
     -- Focus the diff window
     vim.api.nvim_set_current_win(layout.wins.diff)
 
-    -- Set filetype for diff syntax highlighting
-    vim.bo[layout.bufs.diff].filetype = "diff"
-
     -- Set up autocmd to detect when the tab is closed externally
     local augroup = vim.api.nvim_create_augroup("QuackReviewLayout", { clear = true })
 

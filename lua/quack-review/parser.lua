@@ -31,6 +31,14 @@ local function is_binary_notice(line)
     return line:match("^Binary files") ~= nil
 end
 
+local function is_new_file_notice(line)
+    return line:match("^new file mode") ~= nil
+end
+
+local function is_deleted_file_notice(line)
+    return line:match("^deleted file mode") ~= nil
+end
+
 --- Parse raw unified diff text into structured data.
 ---
 --- Returns:
@@ -107,6 +115,16 @@ function M.parse(diff_text)
         -- Binary file notice
         if current_file and is_binary_notice(line) then
             current_file.is_binary = true
+            goto continue
+        end
+
+        if current_file and is_new_file_notice(line) then
+            current_file.is_new = true
+            goto continue
+        end
+
+        if current_file and is_deleted_file_notice(line) then
+            current_file.is_deleted = true
             goto continue
         end
 
@@ -194,6 +212,15 @@ end
 --- @param source string|nil Diff source: nil/"unstaged", "staged", "head", "HEAD~N", or a commit ref
 --- @return string Raw diff text
 function M.get_diff(source)
+    local function run_cmd(cmd, allow_exit_1)
+        local result = vim.fn.system(cmd)
+        if vim.v.shell_error ~= 0 and not (allow_exit_1 and vim.v.shell_error == 1) then
+            vim.notify("quack-review: git diff failed: " .. (result or ""), vim.log.levels.ERROR)
+            return ""
+        end
+        return result
+    end
+
     local cmd
     if not source or source == "" or source == "unstaged" then
         cmd = "git diff --unified=3"
@@ -206,11 +233,37 @@ function M.get_diff(source)
         cmd = "git diff " .. source .. " --unified=3"
     end
 
-    local result = vim.fn.system(cmd)
-    if vim.v.shell_error ~= 0 then
-        vim.notify("quack-review: git diff failed: " .. (result or ""), vim.log.levels.ERROR)
-        return ""
+    local result = run_cmd(cmd)
+
+    if not source or source == "" or source == "unstaged" then
+        local untracked = vim.fn.systemlist({ "git", "ls-files", "--others", "--exclude-standard" })
+        if vim.v.shell_error == 0 and #untracked > 0 then
+            local untracked_diff = {}
+            for _, file in ipairs(untracked) do
+                if file ~= "" then
+                    local diff = run_cmd({
+                        "git",
+                        "diff",
+                        "--no-index",
+                        "--unified=3",
+                        "--",
+                        "/dev/null",
+                        file,
+                    }, true)
+                    if diff ~= "" then
+                        table.insert(untracked_diff, diff)
+                    end
+                end
+            end
+            if #untracked_diff > 0 then
+                if result ~= "" and result:sub(-1) ~= "\n" then
+                    result = result .. "\n"
+                end
+                result = result .. table.concat(untracked_diff, "\n")
+            end
+        end
     end
+
     return result
 end
 
