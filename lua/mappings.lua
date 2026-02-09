@@ -189,5 +189,6 @@ map("n", ";", ":", { noremap = true, silent = false })
 
 -- Copy relative path
 map("n", "<leader>y", function() require('utils').copy_relative_path() end, { desc = "Copy relative path" })
+map("v", "<leader>y", function() require('utils').copy_relative_path_with_lines() end, { desc = "Copy relative path with lines" })
 
 -- End user config

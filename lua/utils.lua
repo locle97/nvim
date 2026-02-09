@@ -47,4 +47,25 @@ M.copy_relative_path = function()
     vim.notify("Copied: " .. relative_path, vim.log.levels.INFO)
 end
 
+-- Copy relative path with line range to clipboard (for visual selection)
+M.copy_relative_path_with_lines = function()
+    local filepath = vim.fn.expand("%:p")
+    if filepath == "" then
+        vim.notify("No file to copy path", vim.log.levels.WARN)
+        return
+    end
+
+    local scope = get_scope()
+    local relative_path = get_relative_path(filepath, scope)
+
+    local l1 = vim.fn.line("v")
+    local l2 = vim.fn.line(".")
+    local start_line = math.min(l1, l2)
+    local end_line = math.max(l1, l2)
+    local result = relative_path .. ":" .. start_line .. "-" .. end_line
+
+    vim.fn.setreg("+", result)
+    vim.notify("Copied: " .. result, vim.log.levels.INFO)
+end
+
 return M
