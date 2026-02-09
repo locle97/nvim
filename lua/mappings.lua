@@ -166,9 +166,9 @@ map('n', '[c', function()
   end
 end)
 
-map('n', 'gs', gitsigns.stage_hunk)
+map('n', '<leader>gs', gitsigns.stage_hunk)
 map('n', '<leader>gr', gitsigns.reset_hunk)
-map('v', 'gs', function()
+map('v', '<leader>gs', function()
   gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
 
@@ -178,8 +178,8 @@ end)
 map("n", "<leader>gd", gitsigns.toggle_deleted, { desc = "Toggle Git deleted" })
 
 -- Git panel (nvim-tree showing only git-dirty files)
-map("n", "gp", function() require('utils').toggle_git_panel() end, { desc = "Toggle git files panel" })
-map("n", "gc", function() require('utils').git_commit() end, { desc = "Git commit" })
+map("n", "<leader>gp", function() require('utils').toggle_git_panel() end, { desc = "Toggle git files panel" })
+map("n", "<leader>gc", function() require('utils').git_commit() end, { desc = "Git commit" })
 
 -- Tmux
 map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
