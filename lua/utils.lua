@@ -113,4 +113,19 @@ do
     end
 end
 
+-- Git commit with dressing input
+M.git_commit = function()
+    vim.ui.input({ prompt = "Commit message: " }, function(msg)
+        if not msg or msg == "" then
+            return
+        end
+        local output = vim.fn.systemlist({ "git", "commit", "-m", msg, "--no-verify" })
+        if vim.v.shell_error == 0 then
+            vim.notify("Committed: " .. msg, vim.log.levels.INFO)
+        else
+            vim.notify(table.concat(output, "\n"), vim.log.levels.ERROR)
+        end
+    end)
+end
+
 return M

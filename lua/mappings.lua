@@ -179,6 +179,7 @@ map("n", "<leader>gd", gitsigns.toggle_deleted, { desc = "Toggle Git deleted" })
 
 -- Git panel (nvim-tree showing only git-dirty files)
 map("n", "gp", function() require('utils').toggle_git_panel() end, { desc = "Toggle git files panel" })
+map("n", "gc", function() require('utils').git_commit() end, { desc = "Git commit" })
 
 -- Tmux
 map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
