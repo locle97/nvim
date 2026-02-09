@@ -166,16 +166,16 @@ map('n', '[c', function()
   end
 end)
 
-map('n', '<leader>gs', gitsigns.stage_hunk)
+map('n', 'gs', gitsigns.stage_hunk)
 map('n', '<leader>gr', gitsigns.reset_hunk)
-map('v', '<leader>gs', function()
+map('v', 'gs', function()
   gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
 
 map('v', '<leader>gr', function()
   gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
-map("n", "<leader>gd", gitsigns.preview_hunk_inline, { desc = "Toggle Git differents" })
+map("n", "<leader>gd", gitsigns.toggle_deleted, { desc = "Toggle Git deleted" })
 
 -- Tmux
 map("n", "<c-h>", "<cmd>TmuxNavigateLeft<cr>")
