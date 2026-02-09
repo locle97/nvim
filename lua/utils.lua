@@ -73,7 +73,7 @@ do
     local git_panel_open = false
     local events_subscribed = false
 
-    M.toggle_git_panel = function()
+    M.toggle_git_explorer = function()
         local api = require("nvim-tree.api")
         local view = require("nvim-tree.view")
 
