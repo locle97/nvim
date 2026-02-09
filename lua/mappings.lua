@@ -151,29 +151,29 @@ map("n", "<leader>gl", ":LazyGit<CR>", { desc = "Open LazyGit" })
 local gitsigns = require('gitsigns')
 
 map('n', ']c', function()
-  if vim.wo.diff then
-    vim.cmd.normal({']c', bang = true})
-  else
-    gitsigns.nav_hunk('next')
-  end
+    if vim.wo.diff then
+        vim.cmd.normal({ ']c', bang = true })
+    else
+        gitsigns.nav_hunk('next')
+    end
 end)
 
 map('n', '[c', function()
-  if vim.wo.diff then
-    vim.cmd.normal({'[c', bang = true})
-  else
-    gitsigns.nav_hunk('prev')
-  end
+    if vim.wo.diff then
+        vim.cmd.normal({ '[c', bang = true })
+    else
+        gitsigns.nav_hunk('prev')
+    end
 end)
 
 map('n', '<leader>gs', gitsigns.stage_hunk)
 map('n', '<leader>gr', gitsigns.reset_hunk)
 map('v', '<leader>gs', function()
-  gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
+    gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
 
 map('v', '<leader>gr', function()
-  gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
+    gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
 end)
 map("n", "<leader>gd", gitsigns.toggle_deleted, { desc = "Toggle Git deleted" })
 
@@ -193,6 +193,7 @@ map("n", ";", ":", { noremap = true, silent = false })
 
 -- Copy relative path
 map("n", "<leader>y", function() require('utils').copy_relative_path() end, { desc = "Copy relative path" })
-map("v", "<leader>y", function() require('utils').copy_relative_path_with_lines() end, { desc = "Copy relative path with lines" })
+map("v", "<leader>y", function() require('utils').copy_relative_path_with_lines() end,
+    { desc = "Copy relative path with lines" })
 
 -- End user config
