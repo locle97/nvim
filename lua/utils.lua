@@ -68,4 +68,49 @@ M.copy_relative_path_with_lines = function()
     vim.notify("Copied: " .. result, vim.log.levels.INFO)
 end
 
+-- Git panel: nvim-tree showing only git-dirty files as a side panel
+do
+    local git_panel_open = false
+    local events_subscribed = false
+
+    M.toggle_git_panel = function()
+        local api = require("nvim-tree.api")
+        local view = require("nvim-tree.view")
+
+        if not events_subscribed then
+            events_subscribed = true
+            api.events.subscribe(api.events.Event.TreeClose, function()
+                if git_panel_open then
+                    git_panel_open = false
+                    require("nvim-tree").setup(vim.deepcopy(require("nvchad.configs.nvimtree")))
+                end
+            end)
+        end
+
+        if git_panel_open then
+            api.tree.close()
+            return
+        end
+
+        if view.is_visible() then
+            api.tree.close()
+        end
+
+        local opts = vim.tbl_deep_extend("force", vim.deepcopy(require("nvchad.configs.nvimtree")), {
+            view = {
+                side = "left",
+                width = 40,
+                float = { enable = false },
+            },
+            filters = {
+                git_clean = true,
+            },
+        })
+
+        require("nvim-tree").setup(opts)
+        git_panel_open = true
+        api.tree.open()
+    end
+end
+
 return M
