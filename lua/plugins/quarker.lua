@@ -33,6 +33,13 @@ return {
             end,
             desc = "Quarker: Context manager"
         },
+        {
+            "<leader>qp",
+            function()
+                require("quarker").show_plan_ui()
+            end,
+            desc = "Quarker: Toggle plan panel"
+        },
         -- Quick navigation keys
         {
             "<leader>1",

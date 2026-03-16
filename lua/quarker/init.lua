@@ -997,9 +997,39 @@ function M.setup_commands()
                 vim.notify("Usage: :Quarker navigate <index>", vim.log.levels.ERROR)
             end
 
+        -- Plan panel commands
+        elseif subcommand == "plan" then
+            local plan_action = args[2]
+            if not plan_action then
+                M.show_plan_ui()
+            elseif plan_action == "pick" then
+                local plan_mod = require("quarker.plan")
+                local panel    = require("quarker.ui.plan_panel")
+                local paths    = plan_mod.discover_plans()
+                if #paths == 0 then
+                    vim.notify("[quarker] No plans found", vim.log.levels.WARN)
+                elseif #paths == 1 then
+                    panel.toggle(paths[1])
+                else
+                    vim.ui.select(paths, {
+                        prompt = "Select plan:",
+                        format_item = function(p)
+                            return vim.fn.fnamemodify(p, ":h:t") .. "  (" .. vim.fn.fnamemodify(p, ":~:.") .. ")"
+                        end,
+                    }, function(choice)
+                        if choice then panel.toggle(choice) end
+                    end)
+                end
+            elseif plan_action == "reload" then
+                require("quarker.ui.plan_panel").reload()
+            else
+                vim.notify("Unknown plan action: " .. plan_action, vim.log.levels.ERROR)
+                vim.notify("Available: pick, reload", vim.log.levels.INFO)
+            end
+
         else
             vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
-            vim.notify("Available commands: scopes, marks, scope, context, ai, mark, unmark, toggle, clear, list, navigate", vim.log.levels.INFO)
+            vim.notify("Available commands: scopes, marks, scope, context, ai, mark, unmark, toggle, clear, list, navigate, plan", vim.log.levels.INFO)
         end
     end, {
         nargs = "*",
@@ -1009,7 +1039,7 @@ function M.setup_commands()
 
             -- Complete first argument (subcommands)
             if num_args == 2 then
-                local subcommands = { "scopes", "marks", "scope", "context", "ai", "mark", "unmark", "toggle", "clear", "list", "navigate" }
+                local subcommands = { "scopes", "marks", "scope", "context", "ai", "mark", "unmark", "toggle", "clear", "list", "navigate", "plan" }
                 return vim.tbl_filter(function(cmd)
                     return cmd:find(ArgLead, 1, true) == 1
                 end, subcommands)
@@ -1039,6 +1069,14 @@ function M.setup_commands()
                 end, ai_actions)
             end
 
+            -- Complete plan subcommands
+            if num_args == 3 and args[2] == "plan" then
+                local plan_actions = { "pick", "reload" }
+                return vim.tbl_filter(function(action)
+                    return action:find(ArgLead, 1, true) == 1
+                end, plan_actions)
+            end
+
             -- Complete scope names for switch, delete, rename
             if num_args >= 4 and args[2] == "scope" and (args[3] == "switch" or args[3] == "delete" or args[3] == "rename") then
                 local scopes, _ = M.list_scopes()
@@ -1064,6 +1102,28 @@ end
 
 M.show_context_ui = function()
     require("quarker.ui").show_context()
+end
+
+M.show_plan_ui = function()
+    local plan_mod = require("quarker.plan")
+    local panel    = require("quarker.ui.plan_panel")
+    local paths    = plan_mod.discover_plans()
+    if #paths == 0 then
+        vim.notify("[quarker] No task_plan.md found (looked in plans/*/task_plan.md)", vim.log.levels.WARN)
+        return
+    end
+    if #paths == 1 then
+        panel.toggle(paths[1])
+        return
+    end
+    vim.ui.select(paths, {
+        prompt = "Select plan:",
+        format_item = function(p)
+            return vim.fn.fnamemodify(p, ":h:t") .. "  (" .. vim.fn.fnamemodify(p, ":~:.") .. ")"
+        end,
+    }, function(choice)
+        if choice then panel.toggle(choice) end
+    end)
 end
 
 -- Module re-exports for convenience
