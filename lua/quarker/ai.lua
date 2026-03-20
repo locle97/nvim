@@ -101,7 +101,7 @@ Generate a structured markdown context document. For each section, add a confide
 ]]
 
     for _, file in ipairs(files) do
-        prompt = prompt .. string.format("\n### %s\n```\n%s\n```\n", file.path, file.content)
+        prompt = prompt .. string.format("\n### %s\n```\n%s\n```\n", file.path)
     end
 
     if existing_context and existing_context ~= "" then
@@ -138,7 +138,7 @@ Generate a feature note document for AI-assisted development.
 ]], name)
 
     for _, file in ipairs(files) do
-        prompt = prompt .. string.format("\n### %s\n```\n%s\n```\n", file.path, file.content)
+        prompt = prompt .. string.format("\n### %s\n```\n%s\n```\n", file.path)
     end
 
     if #search_results > 0 then
@@ -229,7 +229,7 @@ local function run_ai_command(backend, prompt, callback)
     if backend == "claude" then
         full_cmd = string.format("cat '%s' | claude --print 2>&1", tmpfile)
     elseif backend == "cursor-agent" then
-        full_cmd = string.format("cat '%s' | cursor-agent 2>&1", tmpfile)
+        full_cmd = string.format("cat '%s' | cursor-agent -p 2>&1", tmpfile)
     else
         full_cmd = string.format("cat '%s' | %s %s 2>&1", tmpfile, cmd, table.concat(args, " "))
     end
