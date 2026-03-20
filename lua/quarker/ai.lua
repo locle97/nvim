@@ -64,6 +64,19 @@ local function get_git_diff(since)
     return table.concat(result, "\n")
 end
 
+-- Get staged (cached) git diff
+local function get_staged_diff()
+    local result = vim.fn.systemlist("git diff --cached 2>/dev/null")
+    if vim.v.shell_error ~= 0 then
+        return nil
+    end
+    local diff = table.concat(result, "\n")
+    if diff == "" then
+        return nil
+    end
+    return diff
+end
+
 -- Search for patterns in codebase
 local function search_codebase(patterns)
     local results = {}
@@ -163,6 +176,26 @@ Be concise. This is a working note, not documentation.
 ]]
 
     return prompt
+end
+
+local function build_commit_msg_prompt(diff)
+    return [[You are an expert developer writing git commit messages.
+Analyze the following staged diff and write a concise, informative commit message following conventional commits format.
+
+Rules:
+- First line: type(scope): short description (max 72 chars)
+- type: feat, fix, refactor, style, docs, test, chore, perf
+- Optional blank line + body with more details if needed
+- Be specific about WHAT changed and WHY (not just "update files")
+- No period at end of subject line
+
+## Staged Diff
+```diff
+]] .. diff .. [[
+```
+
+Output ONLY the commit message text, no explanation or markdown code fences.
+]]
 end
 
 local function build_refresh_context_prompt(diff, existing_context)
@@ -381,6 +414,144 @@ function M.refresh_context(since)
                 require("quarker.ui").show_context()
             end)
         end
+    end)
+end
+
+-- Open a floating window for the commit message (loading or result)
+local function show_commit_float(initial_lines)
+    local float = require("quarker.ui.float")
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_option(bufnr, "buftype", "nofile")
+    vim.api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
+    vim.api.nvim_buf_set_option(bufnr, "swapfile", false)
+    vim.api.nvim_buf_set_option(bufnr, "filetype", "gitcommit")
+
+    local win_config = float.get_window_config(
+        0.6, 0.35,
+        " Commit Message ",
+        "[y] yank  [<CR>] commit --no-verify  [e] edit  [q] close"
+    )
+    local winid = vim.api.nvim_open_win(bufnr, true, win_config)
+    vim.api.nvim_win_set_option(winid, "wrap", true)
+    vim.api.nvim_win_set_option(winid, "cursorline", true)
+
+    vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, initial_lines)
+    vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+
+    local function close()
+        if vim.api.nvim_win_is_valid(winid) then
+            vim.api.nvim_win_close(winid, true)
+        end
+    end
+
+    local function get_msg()
+        if not vim.api.nvim_buf_is_valid(bufnr) then return nil end
+        local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        return table.concat(lines, "\n"):gsub("^%s+", ""):gsub("%s+$", "")
+    end
+
+    local function yank_msg()
+        local msg = get_msg()
+        if not msg then return end
+        vim.fn.setreg("+", msg)
+        vim.fn.setreg('"', msg)
+        vim.notify("Commit message yanked to clipboard", vim.log.levels.INFO)
+        close()
+    end
+
+    local function do_commit()
+        local msg = get_msg()
+        if not msg or msg == "" then return end
+        close()
+        -- Write message to a temp file to safely handle multi-line messages
+        local tmpfile = vim.fn.tempname()
+        local f = io.open(tmpfile, "w")
+        if not f then
+            vim.notify("Failed to create temp file for commit", vim.log.levels.ERROR)
+            return
+        end
+        f:write(msg)
+        f:close()
+        vim.fn.jobstart({ "git", "commit", "--no-verify", "-F", tmpfile }, {
+            on_exit = function(_, code)
+                os.remove(tmpfile)
+                vim.schedule(function()
+                    if code == 0 then
+                        vim.notify("Committed successfully (--no-verify)", vim.log.levels.INFO)
+                    else
+                        vim.notify("git commit failed (exit " .. code .. ")", vim.log.levels.ERROR)
+                    end
+                end)
+            end,
+        })
+    end
+
+    float.set_float_keymaps(bufnr, {
+        { key = "q",     callback = close,      desc = "Close" },
+        { key = "<Esc>", callback = close,      desc = "Close" },
+        { key = "y",     callback = yank_msg,   desc = "Yank commit message" },
+        { key = "<CR>",  callback = do_commit,  desc = "git commit --no-verify" },
+        { key = "e",     callback = function()
+            vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+            vim.notify("Buffer is now editable", vim.log.levels.INFO)
+        end, desc = "Edit message" },
+    })
+
+    return bufnr, winid
+end
+
+-- Generate a commit message from staged changes using LLM (async)
+function M.generate_commit_msg()
+    local backend = M.detect_backend()
+    if not backend then
+        vim.notify("No AI backend found (tried: claude, cursor-agent, copilot)", vim.log.levels.ERROR)
+        return
+    end
+
+    local diff = get_staged_diff()
+    if not diff then
+        vim.notify("No staged changes. Use `git add` to stage hunks first.", vim.log.levels.WARN)
+        return
+    end
+
+    -- Open the window immediately so the user can keep working
+    local bufnr, winid = show_commit_float({
+        "  Analyzing staged changes with " .. backend .. "...",
+        "",
+        "  (Working in background — you can switch windows)",
+    })
+
+    local prompt = build_commit_msg_prompt(diff)
+
+    run_ai_command(backend, prompt, function(result)
+        vim.schedule(function()
+            if not vim.api.nvim_buf_is_valid(bufnr) then
+                -- Window was closed before result arrived; notify instead
+                if result and result ~= "" then
+                    vim.notify("Commit msg ready (window closed). Yanked to clipboard.", vim.log.levels.INFO)
+                    vim.fn.setreg("+", result)
+                    vim.fn.setreg('"', result)
+                end
+                return
+            end
+
+            local lines
+            if result and result ~= "" then
+                lines = vim.split(result, "\n")
+            else
+                lines = { "  No result returned from AI backend." }
+            end
+
+            vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+            vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+
+            -- Bring the window back into focus
+            if vim.api.nvim_win_is_valid(winid) then
+                vim.api.nvim_set_current_win(winid)
+            end
+        end)
     end)
 end
 

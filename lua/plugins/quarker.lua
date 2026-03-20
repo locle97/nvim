@@ -97,6 +97,13 @@ return {
             end,
             desc = "Quarker: Navigate to mark 9"
         },
+        {
+            "<leader>ga",
+            function()
+                require("quarker.ai").generate_commit_msg()
+            end,
+            desc = "Git: AI commit message"
+        },
     },
     config = function()
         -- Create user commands

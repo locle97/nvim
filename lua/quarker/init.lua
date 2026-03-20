@@ -965,11 +965,13 @@ function M.setup_commands()
             elseif ai_action == "refresh" then
                 local since = args[3] or "HEAD~1"
                 ai_module.refresh_context(since)
+            elseif ai_action == "commit" then
+                ai_module.generate_commit_msg()
             elseif ai_action == "status" then
                 ai_module.status()
             else
                 vim.notify("Unknown ai action: " .. ai_action, vim.log.levels.ERROR)
-                vim.notify("Available: generate, feature, refresh, status", vim.log.levels.INFO)
+                vim.notify("Available: generate, feature, refresh, commit, status", vim.log.levels.INFO)
             end
 
         -- Telescope pickers
@@ -1036,7 +1038,7 @@ function M.setup_commands()
 
             -- Complete ai subcommands
             if num_args == 3 and args[2] == "ai" then
-                local ai_actions = { "generate", "feature", "refresh", "status" }
+                local ai_actions = { "generate", "feature", "refresh", "commit", "status" }
                 return vim.tbl_filter(function(action)
                     return action:find(ArgLead, 1, true) == 1
                 end, ai_actions)
