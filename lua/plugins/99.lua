@@ -12,7 +12,7 @@ return 	{
         _99.setup({
             provider = _99.Providers.ClaudeCodeProvider,  -- default: OpenCodeProvider
             logger = {
-                level = _99.DEBUG,
+                level = _99.INFO,
                 path = "/tmp/" .. basename .. ".99.debug",
                 print_on_error = true,
             },
