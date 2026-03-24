@@ -659,10 +659,7 @@ function M.switch_scope(scope_name)
         cache.scope_metadata_timestamp = 0
         scope_metadata[base_scope] = metadata
 
-        -- Phase 2: sync agent context files for the new scope
-        local ok, sync_results = pcall(function()
-            return require("quarker.sync").sync(base_scope, scope_name)
-        end)
+        vim.notify(string.format("Switched to scope '%s'", scope_name), vim.log.levels.INFO)
         return true
     end
 
@@ -1074,18 +1071,8 @@ end
 -- Module re-exports for convenience
 M.context = require("quarker.context")
 M.ai = require("quarker.ai")
-M.sync = require("quarker.sync")
 
 -- Auto-setup commands when module is loaded
 M.setup_commands()
-
--- Phase 2: sync agent context files for the active scope on startup
-vim.schedule(function()
-    pcall(function()
-        local base  = get_base_scope()
-        local scope = get_active_scope_name()
-        require("quarker.sync").sync(base, scope)
-    end)
-end)
 
 return M
