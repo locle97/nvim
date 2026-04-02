@@ -233,7 +233,7 @@ local function run_ai_command(backend, prompt, callback)
     if backend == "claude" then
         -- Claude CLI: echo prompt | claude --print
         cmd = "claude"
-        args = { "--print" }
+        args = { "--print", "--model", "haiku" }
     elseif backend == "cursor-agent" then
         -- cursor-agent (assuming similar interface)
         cmd = "cursor-agent"
